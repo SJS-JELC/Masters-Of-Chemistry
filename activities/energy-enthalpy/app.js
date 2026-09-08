@@ -16,8 +16,8 @@ function save(){try{localStorage.setItem(key,JSON.stringify(state));}catch{stora
 function progress(){
  $('quickMode').value=state.filter;
  const achievement=P.achievement(results,settings.leafId);
- $('strands').innerHTML=D.strands.map(g=>{const rows=results.filter(r=>r.leafId===settings.leafId&&r.strand===g.id),score=P.weightedScore(rows.map(r=>r.score),settings.halfLives[g.grade]);return `<button class="mode" data-strand="${g.id}" aria-pressed="${state.filter===g.id}">${g.name}<span>${P.bands[g.grade]} · ${score===null?'Not assessed yet':Math.round(score*100)+'% score'}</span></button>`;}).join('');
- $('total').textContent=`${achievement.achievedGrade} / 2 levels`;$('mixed').setAttribute('aria-pressed',state.filter==='mixed');$('session').textContent=`${state.attempt} completed questions · `+[1,2].map(grade=>{const p=P.summarise(results,settings.leafId,grade);return P.bands[grade]+': '+(p.score===null?'not assessed':Math.round(p.mastery)+'%');}).join(' · ')+' · Grade 9 unavailable';
+ $('strands').innerHTML=D.strands.map(g=>{const rows=results.filter(r=>r.leafId===settings.leafId&&r.strand===g.id),score=P.weightedScore(rows.map(r=>r.score),settings.halfLives[g.grade]);return `<button class="mode" data-strand="${g.id}" aria-pressed="${state.filter===g.id}">${g.name}<span>${P.bands[g.grade]}</span>${P.masteryBar(score,g.name+' mastery',g.grade).outerHTML}</button>`;}).join('');
+ $('total').textContent=`${achievement.achievedGrade} / 2 levels`;$('mixed').setAttribute('aria-pressed',state.filter==='mixed');$('session').innerHTML=[1,2].map(grade=>{const p=P.summarise(results,settings.leafId,grade);return `<span>${P.bands[grade]}</span>${P.masteryBar(p.score,P.bands[grade]+' mastery',grade).outerHTML}`;}).join('')+'<span>Grade 9 unavailable</span>';
 }
 function start(supplied){
  if(editor){editor.destroy();editor=null;}
