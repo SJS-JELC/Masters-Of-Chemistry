@@ -29,13 +29,12 @@
     if (!Number.isFinite(halfLife) || halfLife <= 0) throw Error("Half-life must be positive.");
     if (!scores.every(score => [0, 0.5, 1].includes(score))) throw Error("Invalid question score.");
     if (!scores.length) return null;
-    let numerator = 0, denominator = 0;
-    for (let recency = 1; recency <= scores.length; recency++) {
-      const weight = 2 ** (-(recency - 1) / halfLife);
-      numerator += scores[scores.length - recency] * weight;
-      denominator += weight;
-    }
-    return numerator / denominator;
+    // Fixed normalisation by the infinite geometric weight sum, 1 / (1 - decay).
+    // Unanswered history contributes zero; each newest answer has the same weight.
+    const decay = 2 ** (-1 / halfLife);
+    let mastery = 0;
+    for (const score of scores) mastery = mastery * decay + score * (1 - decay);
+    return mastery;
   }
   function questionScore(correct) {
     if (!correct.length || !correct.every(value => typeof value === "boolean")) throw Error("Marking points must be booleans.");
