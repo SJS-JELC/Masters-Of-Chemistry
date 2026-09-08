@@ -63,5 +63,17 @@
     if (!existing.some(record => record.id === item.id)) existing.push(item);
     return clean(existing, now);
   }
-  root.MastersProgress = Object.freeze({ key, bands, read, summarise, achievement, weightedScore, questionScore, append, merge });
+  function masteryBar(score, label = "Mastery", grade = 1) {
+    const bar = document.createElement('span');
+    bar.className = 'mastery-bar'; bar.dataset.grade = grade;
+    bar.setAttribute('role', 'meter'); bar.setAttribute('aria-label', label);
+    bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '1');
+    bar.setAttribute('aria-valuenow', String(score ?? 0));
+    bar.setAttribute('aria-valuetext', score === null ? 'Not assessed yet' : score > config.threshold ? 'Above the mastery threshold' : 'Mastery threshold not yet exceeded');
+    bar.style.setProperty('--mastery-fill', ((score ?? 0) * 100) + '%');
+    bar.style.setProperty('--mastery-threshold', (config.threshold * 100) + '%');
+    bar.innerHTML = '<span class="mastery-bar-fill" aria-hidden="true"></span><span class="mastery-bar-threshold" aria-hidden="true"></span>';
+    return bar;
+  }
+  root.MastersProgress = Object.freeze({ key, bands, read, summarise, achievement, weightedScore, questionScore, append, merge, masteryBar });
 })(globalThis);

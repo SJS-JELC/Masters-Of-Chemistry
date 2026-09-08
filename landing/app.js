@@ -26,9 +26,9 @@
   function updateDetailProgress(data) {
     const state = progressFor(data.leafId);
     document.getElementById("masteryBand").textContent = progress.bands[state.grade] + " mastery";
-    document.getElementById("gemMastery").textContent = state.mastery === null ? "Not assessed yet" : Math.round(state.mastery) + "%";
+    document.getElementById("gemMastery").textContent = state.score === null ? "Not assessed yet" : state.mastered ? "Mastery threshold exceeded" : "Building mastery";
     const meter = document.getElementById("gemMasteryMeter");
-    meter.hidden = state.mastery === null; meter.value = state.mastery || 0;
+    const bar = progress.masteryBar(state.score, progress.bands[state.grade] + ' mastery', state.grade); bar.id = 'gemMasteryMeter'; meter.replaceWith(bar);
     document.getElementById("gemFreshness").textContent = { unreviewed:"No review recorded", fresh:"Bright gleam", steady:"Soft gleam", due:"Review due" }[state.freshness];
     document.getElementById("gemReviewed").textContent = state.days === null ? "" : state.days === 0 ? "Last reviewed today" : "Last reviewed " + state.days + " day" + (state.days === 1 ? "" : "s") + " ago";
   }
@@ -39,7 +39,7 @@
       gem.dataset.assessed = String(state.mastery !== null);
       gem.dataset.masteryGrade = String(state.achievedGrade);
       for (const name of ["fresh", "steady", "due", "unstarted"]) gem.classList.toggle(name, name === (state.mastery === null ? "unstarted" : state.freshness));
-      const label = ChemistryMode.get() === "teacher" ? gem.gemData.name + ", " + (activities[leafId] ? "choose questions" : "activity coming soon") : gem.gemData.name + ", " + (state.achievedGrade ? progress.bands[state.achievedGrade]+" mastered" : "no level mastered yet") + ", " + (state.mastery === null ? "not assessed" : progress.bands[state.grade]+": "+Math.round(state.mastery) + "% mastery") + ", " + (state.days === null ? "no review recorded" : "reviewed " + state.days + " days ago") + ", " + (activities[leafId] ? "activity available" : "activity coming soon");
+      const label = ChemistryMode.get() === "teacher" ? gem.gemData.name + ", " + (activities[leafId] ? "choose questions" : "activity coming soon") : gem.gemData.name + ", " + (state.achievedGrade ? progress.bands[state.achievedGrade]+" mastered" : "no level mastered yet") + ", " + (state.mastery === null ? "not assessed" : "mastery recorded") + ", " + (state.days === null ? "no review recorded" : "reviewed " + state.days + " days ago") + ", " + (activities[leafId] ? "activity available" : "activity coming soon");
       gem.setAttribute("aria-label", label); gem.querySelector("title").textContent = label;
     });
   }
@@ -114,7 +114,7 @@
         link.href=activity.href+"?mode=pupil&practice="+(option==="mastery"?"mastery":"grade&grade="+option);
         label.textContent=option==="mastery"?"MASTERY":progress.bands[option];
         if(option==="mastery")summary.textContent=activity.availableGrades ? "Build mastery across Grades 5–6 and 7–8 · Grade 9 unavailable" : "Build mastery across all three levels";
-        else {const state=progress.summarise(records,data.leafId,option);summary.textContent=state.mastery===null?"Keep cycling this level · not assessed yet":Math.round(state.mastery)+"% mastery · "+(state.days===0?"reviewed today":"reviewed "+state.days+" days ago");}
+        else {const state=progress.summarise(records,data.leafId,option);summary.append(progress.masteryBar(state.score,progress.bands[option]+' mastery',option));}
         link.append(label,summary);choices.appendChild(link);
       });
     }
