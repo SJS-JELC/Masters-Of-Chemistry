@@ -92,3 +92,11 @@ html[data-learning-mode="teacher"] .mode-mark img { filter: invert(1); }
 .print-question:hover { border-color: rgba(85,246,255,.42); background: rgba(85,246,255,.07); color: var(--ink); }
 .print-question svg { width: 17px; height: 17px; flex: 0 0 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 @media print { .print-question { display: none !important; } }
+
+/* Unnumbered mastery scale; the white rule marks the configured threshold. */
+.mastery-bar.mastery-bar { display:block; position:relative; width:100%; height:12px; min-height:12px; flex:0 0 100%; margin:9px 0; padding:0; border:1px solid #65708b; border-radius:4px; background:#11182d; overflow:visible; box-sizing:border-box; }
+.mastery-bar[data-grade="1"] { --mastery-colour:#ffde59; }
+.mastery-bar[data-grade="2"] { --mastery-colour:#54f5b5; }
+.mastery-bar[data-grade="3"] { --mastery-colour:#c59aff; }
+.mastery-bar > .mastery-bar-fill { display:block; position:absolute; inset:0 auto 0 0; width:var(--mastery-fill,0%); height:100%; margin:0; padding:0; border-radius:3px; background:var(--mastery-colour,#54f5b5); }
+.mastery-bar > .mastery-bar-threshold { display:block; position:absolute; left:var(--mastery-threshold,80%); top:-4px; bottom:-4px; width:2px; margin:0; padding:0; transform:translateX(-50%); background:#fff; box-shadow:0 0 0 1px #11182d; }
