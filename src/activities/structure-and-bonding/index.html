@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080a1d">
+  <title>Structure and Bonding — Masters of IGCSE Chemistry</title>
+  <link rel="icon" href="../../assets/SJS-Eagle.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/shared-theme.css">
+  <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../../assets/question-review.css">
+<script src="../../assets/question-review.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <div class="brand-mark mode-mark"><img src="../../assets/SJS-Eagle.svg" alt="St John's School eagle"></div>
+      <div>
+        <p class="eyebrow">SJS // MASTERY</p>
+        <h1>Structure &amp; bonding <span>comparisons</span></h1>
+        <p class="lede">Build a comparison, explain it, then check every scientific point.</p>
+      </div>
+      <div class="site-tools">
+        <a class="site-back-link" href="../../index.html#lower-6-5">← Masters of IGCSE Chemistry</a>
+        <span class="site-version" data-site-version></span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="panel controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Question options</h2>
+        <div class="field">
+          <label for="focus">Comparison focus</label>
+          <select id="focus">
+            <option value="any">Any comparison</option>
+            <option value="melting-boiling">Melting and boiling points</option>
+            <option value="conductivity">Electrical conductivity</option>
+            <option value="hardness">Hardness and softness</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="responseLevel">Support level</label>
+          <select id="responseLevel">
+            <option value="1">Grade 5–6 — Table</option>
+            <option value="2">Grade 7–8 — Headings</option>
+            <option value="3" selected>Grade 9 — Open response</option>
+          </select>
+        </div>
+        <button class="wide-button" id="generate" type="button">Generate question</button>
+        <button class="wide-button secondary mode-button" id="teacherMode" type="button" aria-pressed="false">Teacher mode: Off</button>
+        <p class="control-note" id="controlNote">Questions are selected from checked comparison mark schemes. A new question clears the current answer and self-marking.</p>
+        <div class="control-meta" id="controlMeta" aria-live="polite"></div>
+      </section>
+
+      <section class="panel workspace-panel" id="questionPanel" aria-live="polite">
+        <div class="empty">Generate a question to begin.</div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../../assets/test-mode-bridge.js"></script>
+  <script src="../../assets/site-version.js"></script>
+  <script src="../../assets/learning-mode.js"></script>
+  <script src="data.js"></script>
+  <script src="core.js"></script>
+  <script src="../../assets/print-button.js"></script>
+  <script src="../../assets/igcse-mastery-config.js"></script>
+  <script src="../../landing/progress.js"></script>
+  <script src="app.js"></script>
+  <script src="../../assets/activity-modes.js"></script>
+
+
+</body>
+</html>

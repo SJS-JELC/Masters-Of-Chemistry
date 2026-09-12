@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080a1d">
+  <title>Masters of IGCSE Chemistry</title>
+  <link rel="icon" href="assets/SJS-Eagle.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/shared-theme.css">
+  <link rel="stylesheet" href="landing/styles.css">
+  <link rel="stylesheet" href="assets/test-mode.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="shell">
+    <header class="brand">
+      <button class="brand-mark mode-eagle" type="button" data-mode-toggle aria-pressed="false" aria-label="Switch to teacher question selection"><img src="assets/SJS-Eagle.svg" alt="St John's School eagle"></button>
+      <div>
+        <p class="eyebrow">SJS // CHEMISTRY ACTIVITIES</p>
+        <h1>Masters of <span>IGCSE Chemistry</span></h1>
+      </div>
+      <div class="site-tools"><span class="prototype-tag" data-mode-label>Pupil practice</span></div>
+    </header>
+    <div class="test-tile-row"><button class="test-tile" id="testModeTile" type="button"><svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h16l5 8-13 15L3 13 8 5Z"/><path d="m8 5 8 23L24 5M3 13h26M8 5l8 8 8-8"/></svg><span>Revision</span></button></div>
+
+    <div class="map-layout">
+      <section class="panel curriculum-panel" aria-labelledby="mapHeading">
+<h2 id="mapHeading" class="visually-hidden">Chemistry topics</h2>
+        <div class="map-canvas">
+        <div class="year-grid sparkles-on" id="yearGrid" aria-label="Chemistry topics by teaching year"></div>
+        </div>
+      </section>
+
+      <dialog class="panel detail-panel" id="gemDetails" aria-labelledby="detailTopic detailSubbranch">
+        <button class="close-button detail-close" id="closeDetails" type="button" aria-label="Close topic details">×</button>
+        <div class="selection-summary">
+          <p class="kicker" id="detailKicker">SELECTED GEM</p>
+          <h3 class="detail-heading"><span id="detailTopic">Energetics</span><span class="detail-separator" aria-hidden="true">›</span><span id="detailSubbranch">Calorimetry</span></h3>
+          <p class="detail-path" id="detailPath">Lower Fifth • Calculation</p>
+        </div>
+        <div class="gem-progress" aria-live="polite">
+          <div><span id="masteryBand">Grade 5–6 mastery</span><strong id="gemMastery">Not assessed yet</strong><progress id="gemMasteryMeter" max="100" value="0" aria-label="Mastery" hidden></progress></div>
+          <div><span>Freshness</span><strong id="gemFreshness">No review recorded</strong><small id="gemReviewed"></small></div>
+        </div>
+        <div class="activity-type-card" id="activityTypeCard">
+          <svg class="detail-gem" id="detailGem" viewBox="-14 -16 28 34" aria-hidden="true">
+            <path d="M0 -14 L11 -5 L8 8 L0 15 L-8 8 L-11 -5 Z" fill="currentColor" stroke="rgba(255,255,255,.8)"/>
+            <path d="M0 -14 L0 7 L-8 8 L-11 -5 Z" fill="rgba(255,255,255,.22)"/>
+          </svg>
+          <div><strong id="activityType">Calculation activity</strong><span id="activityStatus">Ready to use</span></div>
+        </div>
+        <div class="activity-action" id="activityAction">
+          <a class="activity-link" id="activityLink" href="activities/calorimetry/index.html">Start Calorimetry</a>
+          <div id="practiceChoices" class="practice-choices" aria-label="Choose practice mode" hidden></div>
+          <p class="activity-unavailable" id="activityUnavailable" hidden>No activity has been added for this subtopic yet.</p>
+        </div>
+        <p class="progress-note">Yellow: Grade 5–6. Green: Grade 7–8. Purple: Grade 9. Shine shows freshness; dull gems are due for review.</p>
+      </dialog>
+    </div>
+    <footer>Your practice, one topic at a time. • <span data-site-version></span></footer>
+  </main>
+
+  <script src="assets/site-version.js"></script>
+  <script src="assets/learning-mode.js"></script>
+  <script src="landing/catalog.js"></script>
+  <script src="assets/igcse-mastery-config.js"></script>
+  <script src="landing/progress.js"></script>
+  <script src="landing/app.js"></script>
+  <script defer src="assets/test-mode-core.js"></script>
+  <script defer src="assets/test-mode.js"></script>
+</body>
+</html>
