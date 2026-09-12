@@ -5,6 +5,7 @@
   const years = globalThis.MASTERS_HIERARCHY || [];
   const activityColours = {
     calculation: "#55f6ff",
+    diagram: "#7ef2ce",
     "long-answer": "#ff5ecb",
     "short-answer": "#54f5b5",
     unavailable: "#68708a"
@@ -102,26 +103,28 @@
 
     activityLink.hidden = !activity;
     const choices=document.getElementById("practiceChoices");
-    const pupilChoices=Boolean(activity?.practiceModes && ChemistryMode.get()==="pupil");
+    const diagramChoices=Boolean(activity?.diagramGrades);
+    const pupilChoices=diagramChoices||Boolean(activity?.practiceModes && ChemistryMode.get()==="pupil");
     choices.hidden=!pupilChoices;choices.replaceChildren();
     document.querySelector(".gem-progress").hidden=pupilChoices;
     document.getElementById("activityTypeCard").hidden=pupilChoices;
     if(pupilChoices){
       activityLink.hidden=true;
-      ["mastery",...(activity.availableGrades || [1,2,3])].forEach(option=>{
+      (diagramChoices?activity.diagramGrades:["mastery",...(activity.availableGrades || [1,2,3])]).forEach(option=>{
         const link=document.createElement("a"),label=document.createElement("strong"),summary=document.createElement("span");
         link.className="practice-choice";link.dataset.practice=option;
-        link.href=activity.href+"?mode=pupil&practice="+(option==="mastery"?"mastery":"grade&grade="+option);
+        link.href=activity.href+(activity.href.includes("?")?"&":"?")+"mode="+ChemistryMode.get()+"&practice="+(option==="mastery"?"mastery":"grade&grade="+option);
         label.textContent=option==="mastery"?"MASTERY":progress.bands[option];
-        if(option==="mastery")summary.textContent=activity.availableGrades ? "Build mastery across Grades 5–6 and 7–8 · Grade 9 unavailable" : "Build mastery across all three levels";
+        if(diagramChoices)summary.textContent=data.leafId==="fourth-3-1"?(option===1?"Formula supplied · simple ion ratios":"Infer the formula · larger ion ratios"):{1:"Two atoms · single and double bonds",2:"Multiple atoms and triple bonds",3:"Larger diagrams · organic and multiple-bond challenge"}[option];
+        else if(option==="mastery")summary.textContent=activity.availableGrades ? "Build mastery across Grades 5–6 and 7–8 · Grade 9 unavailable" : "Build mastery across all three levels";
         else {const state=progress.summarise(records,data.leafId,option);summary.append(progress.masteryBar(state.score,progress.bands[option]+' mastery',option));}
         link.append(label,summary);choices.appendChild(link);
       });
     }
     activityUnavailable.hidden = Boolean(activity);
     if (activity) {
-      activityLink.href = activity.href + "?mode=" + ChemistryMode.get() + (ChemistryMode.get() === "pupil" ? "&grade=" + activeGrade : "");
-      activityLink.textContent = ChemistryMode.get() === "teacher" ? "Choose and print questions" : activity.label;
+      activityLink.href = activity.href + (activity.href.includes("?") ? "&" : "?") + "mode=" + ChemistryMode.get() + (ChemistryMode.get() === "pupil" ? "&grade=" + activeGrade : "");
+      activityLink.textContent = ChemistryMode.get() === "teacher" ? (activity.type === "diagram" ? "Choose diagram questions" : "Choose and print questions") : activity.label;
       activityLink.dataset.type = activity.type;
     } else {
       activityLink.removeAttribute("data-type");

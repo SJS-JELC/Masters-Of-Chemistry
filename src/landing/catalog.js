@@ -35,6 +35,14 @@
   ]);
 
   root.MASTERS_ACTIVITIES = Object.freeze({
+    "fourth-3-1": Object.freeze({
+      id: "dot-and-cross", label: "Build ionic diagrams", type: "diagram",
+      typeLabel: "Dot & Cross", href: "activities/dot-and-cross/index.html?category=ionic", diagramGrades: [1, 2]
+    }),
+    "fourth-3-2": Object.freeze({
+      id: "dot-and-cross", label: "Build covalent diagrams", type: "diagram",
+      typeLabel: "Dot & Cross", href: "activities/dot-and-cross/index.html?category=covalent", diagramGrades: [1, 2, 3]
+    }),
     "lower-10-1": Object.freeze({
       id: "energy-enthalpy",
       practiceModes: true,

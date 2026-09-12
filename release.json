@@ -1,6 +1,7 @@
 {
   "name": "Masters-of-IGCSE-Chemistry",
   "activities": [
+    "dot-and-cross",
     "energy-enthalpy",
     "structure-and-bonding",
     "calorimetry",
@@ -23,6 +24,12 @@
     "activities/calorimetry/mastery-core.js",
     "activities/calorimetry/mastery-ui.js",
     "activities/calorimetry/styles.css",
+    "activities/dot-and-cross/app.js",
+    "activities/dot-and-cross/core.js",
+    "activities/dot-and-cross/data.js",
+    "activities/dot-and-cross/index.html",
+    "activities/dot-and-cross/renderer.js",
+    "activities/dot-and-cross/styles.css",
     "activities/energy-enthalpy/app.js",
     "activities/energy-enthalpy/core.js",
     "activities/energy-enthalpy/data.js",
