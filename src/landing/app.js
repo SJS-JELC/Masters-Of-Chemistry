@@ -192,15 +192,35 @@
       const title = document.createElement("h3");
       title.id = "topic-" + number;
       title.textContent = name;
+      const trigger = document.createElement('button');
+      trigger.type = 'button'; trigger.className = 'topic-trigger'; trigger.textContent = name;
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.setAttribute('aria-controls', year.key + '-topic-' + number + '-gems');
+      title.replaceChildren(trigger);
+      topic.addEventListener('click', event => {
+        if (event.target.closest('.gem-entry, .test-topic-all')) return;
+        const opening = !topic.classList.contains('expanded');
+        card.querySelectorAll('.topic-section').forEach(other => {
+          const expanded = other === topic && opening;
+          other.classList.toggle('expanded', expanded);
+          other.querySelector('.topic-trigger').setAttribute('aria-expanded', String(expanded));
+        });
+      });
       topic.appendChild(title);
       const row = document.createElement("div");
       row.className = "topic-gems";
+      row.id = year.key + '-topic-' + number + '-gems';
       subBranches.forEach((name, index) => {
         const data = { year: year.name, yearKey: year.key, topicNumber: number,
           topic: title.textContent, subNumber: index + 1, name,
           leafId: year.key + "-" + number + "-" + (index + 1) };
-        const svg = makeSvg("svg", { class: "gem-slot", viewBox: "2 2 44 44" }, row);
+        const entry = document.createElement('div'); entry.className = 'gem-entry';
+        row.append(entry);
+        const svg = makeSvg("svg", { class: "gem-slot", viewBox: "2 2 44 44" }, entry);
         addGem(svg, {x:24, y:24}, data, -90);
+        const label = document.createElement('span'); label.className = 'gem-name'; label.textContent = name;
+        entry.append(label);
+        label.addEventListener('click', () => svg.querySelector('[data-leaf]').dispatchEvent(new MouseEvent('click', {bubbles: true})));
       });
       topic.appendChild(row);
       card.appendChild(topic);

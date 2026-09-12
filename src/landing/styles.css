@@ -526,6 +526,15 @@ button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 4px; }
 .topic-section h3 { font-size: 1.08rem; line-height: 1.45; text-align: center; margin-bottom: 2px; }
 .topic-gems { justify-content: center; }
 .year-card-heading h2 { text-align: center; }
+.topic-trigger { width:100%; min-height:44px; border:0; border-radius:7px; padding:7px; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+.topic-trigger:focus-visible { outline:2px solid var(--yellow); }
+.topic-section.expanded .topic-trigger { color:var(--year-colour); }
+.gem-entry { display:flex; align-items:center; }
+.gem-entry .gem-name { display:none; }
+.topic-section.expanded .topic-gems { display:grid; grid-template-columns:minmax(0,1fr); gap:2px; }
+.topic-section.expanded .gem-entry { gap:12px; min-height:46px; cursor:pointer; }
+.topic-section.expanded .gem-name { display:block; color:var(--muted); font-size:.85rem; line-height:1.5; overflow-wrap:anywhere; }
+.topic-section.expanded .gem-entry:has(.gem.available) .gem-name { color:var(--year-colour); }
 /* Full-width year boxes; pupil/teacher selection is in the eagle. */
 .curriculum-panel { display: block; }
 .map-canvas { padding: 0; }

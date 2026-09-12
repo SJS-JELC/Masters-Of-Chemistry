@@ -43,7 +43,7 @@
       const entry = reviewBank.get(id); current = entry.question; responseLevel.value = entry.level;
       focus.value = 'any'; clearResponseState(); renderQuestion();
     }
-    function mountReview(id) { if (!test) QuestionReview.mount(panel, id, loadReview); }
+    function mountReview(id) { QuestionReview.mount(panel, id, test ? null : loadReview); }
 
     function hash(value) {
       let number = 2166136261;
