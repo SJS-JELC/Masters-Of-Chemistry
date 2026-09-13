@@ -221,9 +221,13 @@
         row.append(entry);
         const svg = makeSvg("svg", { class: "gem-slot", viewBox: "2 2 44 44" }, entry);
         addGem(svg, {x:24, y:24}, data, -90);
-        const label = document.createElement('span'); label.className = 'gem-name'; label.textContent = name;
+        const label = document.createElement('button'); label.type = 'button'; label.className = 'gem-name'; label.textContent = name;
+        label.setAttribute('aria-haspopup', 'dialog'); label.setAttribute('aria-controls', 'gemDetails');
         entry.append(label);
-        label.addEventListener('click', () => svg.querySelector('[data-leaf]').dispatchEvent(new MouseEvent('click', {bubbles: true})));
+        label.addEventListener('click', event => {
+          event.stopPropagation();
+          svg.querySelector('[data-leaf]').dispatchEvent(new MouseEvent('click', {bubbles: true}));
+        });
       });
       topic.appendChild(row);
       card.appendChild(topic);

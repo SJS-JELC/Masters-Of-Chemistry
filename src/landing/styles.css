@@ -531,6 +531,8 @@ button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 4px; }
 .topic-section.expanded .topic-trigger { color:var(--year-colour); }
 .gem-entry { display:flex; align-items:center; }
 .gem-entry .gem-name { display:none; }
+.gem-entry button.gem-name { border:0; background:transparent; padding:6px 0; font:inherit; text-align:left; cursor:pointer; }
+.gem-entry button.gem-name:focus-visible { outline:2px solid var(--yellow); outline-offset:3px; border-radius:4px; }
 .topic-section.expanded .topic-gems { display:grid; grid-template-columns:minmax(0,1fr); gap:2px; }
 .topic-section.expanded .gem-entry { gap:12px; min-height:46px; cursor:pointer; }
 .topic-section.expanded .gem-name { display:block; color:var(--muted); font-size:.85rem; line-height:1.5; overflow-wrap:anywhere; }

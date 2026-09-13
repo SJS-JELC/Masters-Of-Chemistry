@@ -78,6 +78,12 @@ svg text{font-family:Comfortaa,system-ui,sans-serif;font-weight:700;fill:#17213a
 @media(max-width:480px){.toolbar .history-tools{display:flex;flex-basis:auto;width:auto;gap:4px}.toolbar .circles-tool{width:auto}.history-tools .tool{padding:0 9px}}
 
 #canvas .local-charge .charge-label{font-size:18px}#canvas .charge-preview{pointer-events:none;opacity:.75}#canvas .charge-preview .bracket-path{stroke:var(--cyan);stroke-dasharray:5 4}
+
+/* Test revision already supplies its own heading and navigation. Keep the
+   actual drawing surface, actions, feedback and answer dialog in the frame. */
+.test-mode-embedded .brand,.test-mode-embedded .question-panel{display:none!important}
+.test-mode-embedded .page{padding-top:0!important}
+.test-mode-embedded .editor{border-radius:0;margin:0;box-shadow:none}
 #canvas .electron-preview{opacity:.7;filter:drop-shadow(0 0 3px #ffde59) drop-shadow(0 0 7px #ffde59);pointer-events:none}
 #canvas .electron-preview .electron-mark{fill:#ffde59;stroke:#ffde59}
 
