@@ -32,31 +32,39 @@
     <p id="testSaveStatus" role="status" hidden></p>`;
   tile.parentElement.after(host);
   const questionId = document.createElement('span'); questionId.id = 'testQuestionId';
-  $('testQuestionTitle').after(questionId);
-  const topicButtons = [];
-  for (const topic of document.querySelectorAll('#yearGrid .topic-section')) {
-    const ids = [...topic.querySelectorAll('[data-leaf]')].map(node => node.dataset.leaf).filter(id => catalog[id]);
-    if (!ids.length) continue;
+  const codeLine = document.createElement('div'); codeLine.className = 'revision-code-line';
+  const codeLabel = document.createElement('span'); codeLabel.textContent = 'SJS // MASTERY';
+  questionId.className = 'header-question-code'; codeLine.append(codeLabel,questionId);
+  document.querySelector('main > header h1').before(codeLine);
+  const bulkButtons = [];
+  function addBulkToggle(scope, heading, className, name) {
+    const ids = [...new Set([...scope.querySelectorAll('[data-leaf]')].map(node => node.dataset.leaf).filter(id => catalog[id]))];
+    if (!ids.length && className === 'test-topic-all') return;
     const button = document.createElement('button');
-    button.type = 'button'; button.className = 'test-topic-all'; button.textContent = 'ADD ALL';
-    const name = topic.querySelector('h3').textContent.trim();
+    button.type = 'button'; button.className = className; button.textContent = 'ADD ALL'; button.disabled = !ids.length;
+    if (!ids.length) button.title = 'No revision activities available in this year group yet';
     button.addEventListener('click', event => {
       event.stopPropagation();
       const remove = ids.every(id => selection.has(id));
       ids.forEach(id => remove ? selection.delete(id) : selection.add(id));
       drawSelection();
     });
-    topic.querySelector('h3').append(button);
-    topicButtons.push({button, ids, name});
+    heading.append(button);
+    bulkButtons.push({button, ids, name});
   }
+  for (const topic of document.querySelectorAll('#yearGrid .topic-section')) addBulkToggle(topic,topic.querySelector('h3'),'test-topic-all',topic.querySelector('h3').textContent.trim());
+  for (const year of document.querySelectorAll('#yearGrid .year-card')) addBulkToggle(year,year.querySelector('.year-card-heading'),'test-year-all',year.querySelector('h2').textContent.trim());
+  const teacherView = () => globalThis.ChemistryMode?.get() === 'teacher';
   if (location.protocol === 'file:') {
     const notice = $('testSaveStatus');
     notice.textContent = 'Revision is available on the website. Please open the published version to use it.';
     tile.setAttribute('aria-controls',notice.id);
     tile.onclick = () => {
+      if (teacherView()) return;
       notice.hidden = !notice.hidden;
       tile.setAttribute('aria-expanded',String(!notice.hidden));
     };
+    document.addEventListener('learningmodechange',syncLearningMode); syncLearningMode();
     return;
   }
   tile.parentElement.append($('testSelection'));
@@ -66,7 +74,12 @@
   $('testChange').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3Z"/><circle cx="12" cy="12" r="3"/></svg>';
   $('testChange').setAttribute('aria-label','Change gems'); $('testChange').title = 'Change gems';
   navigation.append($('testPause'),$('testChange')); document.querySelector('main > header').append(navigation);
-  document.querySelector('.test-session-heading').append($('testCurrentBars'));
+  navigation.prepend($('testCurrentBars'));
+  if (!alevel) $('testCurrentBars').classList.add('mastery-display');
+  document.querySelector('main > header .mode-eagle')?.addEventListener('click', event => {
+    if (!document.body.classList.contains('test-revising')) return;
+    event.preventDefault(); event.stopImmediatePropagation(); $('testPause').click();
+  }, true);
   function refresh() {
     if (alevel) M.refresh();
     else { try { records = M.merge(M.read(localStorage),records); } catch (_) {} }
@@ -87,8 +100,8 @@
   }
   function gemNodes() { return [...document.querySelectorAll('#yearGrid [data-leaf]')]; }
   function drawSelection() {
-    for (const {button, ids, name} of topicButtons) {
-      const all = ids.every(id => selection.has(id));
+    for (const {button, ids, name} of bulkButtons) {
+      const all = ids.length > 0 && ids.every(id => selection.has(id));
       button.textContent = all ? 'REMOVE ALL' : 'ADD ALL';
       button.setAttribute('aria-pressed', String(all));
       button.setAttribute('aria-label', (all ? 'Remove all available gems in ' : 'Add all available gems in ') + name);
@@ -126,7 +139,16 @@
     }
   }
   function stopFrame() { clearTimeout(timer); if (frame) frame.remove(); frame = null; }
+  function syncLearningMode() {
+    const teacher = teacherView();
+    tile.parentElement.hidden = teacher; host.hidden = teacher;
+    if (!teacher) return;
+    if (session) { session.active = false; save(); }
+    stopFrame(); leaveSelection(); document.body.classList.remove('test-revising');
+    $('testRevision').hidden = true; $('testSaveStatus').hidden = true; map.hidden = false;
+  }
   function selectGems() {
+    if (teacherView()) return;
     document.body.classList.remove('test-revising');
     if (session) { session.active = false; save(); }
     stopFrame(); selecting = true; selection = new Set(session?.selected || [...selection]);
@@ -163,19 +185,23 @@
     }));
   }
   function renderProgress() {
+    const eagle = document.querySelector('main > header .mode-eagle');
+    if (eagle) { eagle.setAttribute('aria-label','Back to activity map'); eagle.title = 'Back to activity map'; }
     overview(); const c = session.current;
     if (!c) return;
     const setting = session.gems[c.leafId][c.level];
     $('testHeading').textContent = catalog[c.leafId].name;
     $('testLevel').textContent = catalog[c.leafId].labels[c.level];
-    $('testCurrentBars').replaceChildren(...[1,2,3].map(level => {
+    $('testCurrentBars').replaceChildren(...[1,2,3].filter(level => alevel || session.selected.some(id => catalog[id].levels.includes(level))).map(level => {
       const states = session.selected.filter(id => catalog[id].levels.includes(level)).map(id => summary(id,level));
       const score = states.length ? states.reduce((sum,state) => sum + (state.score || 0),0)/states.length : null;
       const colour = ['Gold','Green','Purple'][level-1], mastered = states.length && states.every(state => state.score > .8);
       const judgement = !states.length ? 'No available questions' : states.every(state => state.score === null) ? 'Not assessed' : mastered ? 'Mastered across selected gems' : 'Developing mastery';
       const box = document.createElement('div'), label = document.createElement('span'); label.textContent = colour;
+      box.classList.toggle('is-mastered', score > .8);
       box.dataset.level = level; box.title = colour + ': ' + judgement + (score === null ? '' : ' (' + Math.round(score*100) + '% overall)');
       const bar = alevel ? M.bar(score,box.title,level) : M.masteryBar(score,box.title,level);
+      if (!alevel) { const meter = M.masteryMeter(score,level); meter.title = box.title; return meter; }
       box.append(label,bar); return box;
     }));
     $('testReason').textContent = c.result ? 'Review your feedback, then choose Next question.' : setting.mode === 'check'
@@ -193,6 +219,7 @@
   }
   function loadQuestion() {
     questionId.textContent = '';
+    questionId.hidden = false;
     stopFrame(); $('testError').hidden = true; $('testFinish').hidden = true;
     if (!session.current) { finish(); return; }
     renderProgress(); $('testQuestionTitle').textContent = ''; const c = session.current;
@@ -203,6 +230,7 @@
     timer = setTimeout(() => { $('testLoadStatus').textContent = ''; $('testError').hidden = false; },15000);
   }
   function start(resume) {
+    if (teacherView()) return;
     refresh(); leaveSelection();
     if (!resume) session = C.create([...selection],catalog,summary,Date.now(),uuid());
     session.active = true; $('testRevision').hidden = false; map.hidden = true;
@@ -226,6 +254,7 @@
         payload:{leafId:c.leafId,level:c.level,state:c.state,previous:session.previous[c.leafId+':'+c.level] || null}},location.origin === 'null' ? '*' : location.origin);
     } else if (d.type === 'title') {
       questionId.textContent = typeof d.payload?.questionId === 'string' ? d.payload.questionId.slice(0,100) : '';
+      questionId.hidden = d.payload?.inlineQuestionId === true;
       if (typeof d.payload?.title === 'string') $('testQuestionTitle').textContent = d.payload.title.slice(0,250);
     } else if (d.type === 'resize') {
       if (Number.isFinite(d.payload?.height)) frame.style.height = Math.max(420,Math.min(12000,d.payload.height)) + 'px';
@@ -251,7 +280,7 @@
   $('testClear').onclick = () => { selection.clear(); drawSelection(); };
   $('testCancel').onclick = () => { leaveSelection(); tile.focus(); };
   $('testChange').onclick = selectGems; $('testReturnSelection').onclick = selectGems;
-  $('testPause').onclick = () => { session.active = false; save(); stopFrame(); document.body.classList.remove('test-revising'); $('testRevision').hidden = true; map.hidden = false; tile.setAttribute('aria-label','Revision: choose gems'); tile.focus(); window.dispatchEvent(new Event('storage')); };
+  $('testPause').onclick = () => { const eagle = document.querySelector('main > header .mode-eagle'); if (eagle) { eagle.setAttribute('aria-label','Switch to teacher question selection'); eagle.title = eagle.getAttribute('aria-label'); } session.active = false; save(); stopFrame(); document.body.classList.remove('test-revising'); $('testRevision').hidden = true; map.hidden = false; tile.setAttribute('aria-label','Revision: choose gems'); tile.focus(); window.dispatchEvent(new Event('storage')); };
   $('testRetry').onclick = loadQuestion;
   $('testAgain').onclick = () => { selection = new Set(session.selected); start(false); };
   window.addEventListener('storage',event => {
@@ -269,6 +298,7 @@
     // Replay an interrupted evidence write before accepting further questions. IDs deduplicate it.
     for (const item of session.evidence) { try { persistEvidence(item); } catch (_) {} }
     tile.setAttribute('aria-label','Revision: choose gems'); selection = new Set(session.selected);
-    if (session.active) start(true);
+    if (session.active && !teacherView()) start(true);
   }
+  document.addEventListener('learningmodechange',syncLearningMode); syncLearningMode();
 })();

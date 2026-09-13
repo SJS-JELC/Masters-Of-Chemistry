@@ -34,7 +34,7 @@ function check(q,m,data){
  return q.checks.map(c=>!!checks[c]);
 }
 function fresh(){return {version:2,attempt:0,records:[],filter:'mixed'};}
-function load(raw,data){try{const s=JSON.parse(raw);if(s.version!==2||!Array.isArray(s.records))return fresh();const ids=new Set(data.questions.map(q=>q.id));s.records=s.records.filter(r=>ids.has(r.id)&&Number.isInteger(r.at)&&r.at>0&&typeof r.pass==='boolean'&&typeof r.hinted==='boolean');s.attempt=Math.max(0,...s.records.map(r=>r.at));if(['classify','transfer','activation'].includes(s.filter))s.filter='energy';s.filter=data.strands.some(g=>g.id===s.filter)||['grade1','grade2'].includes(s.filter)?s.filter:'mixed';return s;}catch{return fresh();}}
+function load(raw,data){try{const s=JSON.parse(raw);if(s.version!==2||!Array.isArray(s.records))return fresh();const ids=new Set(data.questions.map(q=>q.id));s.records=s.records.filter(r=>ids.has(r.id)&&Number.isInteger(r.at)&&r.at>0&&typeof r.pass==='boolean'&&typeof r.hinted==='boolean');s.attempt=Math.max(0,...s.records.map(r=>r.at));s.filter=['grade1','grade2'].includes(s.filter)?s.filter:'mixed';return s;}catch{return fresh();}}
 function status(s,strand,data){
  const rows=s.records.filter(r=>data.questions.find(q=>q.id===r.id).strand===strand);
  // An error reopens the strand: subsequent independent successes rebuild evidence.

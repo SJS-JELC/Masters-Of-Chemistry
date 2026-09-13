@@ -12,11 +12,10 @@
 </head>
 <body>
 <main class="page">
- <header class="brand"><div class="brand-mark mode-mark"><img src="../../assets/SJS-Eagle.svg" alt="St John's School eagle" width="38" height="48"></div><div><p class="eyebrow">IGCSE CHEMISTRY · 10.1</p><h1>Energy <span>& Enthalpy</span></h1></div><a class="back" href="../../index.html">← Activity map</a></header>
+ <header class="brand"><a class="brand-mark mode-mark" href="../../index.html" aria-label="Back to IGCSE Chemistry activity map"><img src="../../assets/SJS-Eagle.svg" alt="St John's School eagle" width="38" height="48"></a><div><p class="eyebrow">IGCSE CHEMISTRY · 10.1</p><h1>Energy <span>& Enthalpy</span></h1></div><a class="back" href="../../index.html">← Activity map</a></header>
  <div class="layout">
-  <aside class="panel mastery" aria-label="Mastery progress"><div class="heading-row"><h2>Your mastery</h2><span id="total">0 / 3</span></div><p class="small">Short answers and diagrams<br>are automatically marked.</p><button id="mixed" class="mode" aria-pressed="true">Mixed practice <span>All three areas</span></button><nav id="strands" aria-label="Choose a mastery area"></nav><p id="saveStatus" class="small">Progress stays in this browser.</p><button id="reset" class="quiet">Reset progress</button></aside>
+
   <section class="panel workspace" aria-label="Practice question">
-   <div class="mobile-mode control"><label for="quickMode">Practice area</label><select id="quickMode"><option value="mixed">Mixed practice</option></select></div>
    <div class="question-top"><span id="strandName" class="eyebrow"></span><span id="format" class="badge"></span></div>
    <h2 id="prompt" tabindex="-1"></h2><p id="equation" class="question-equation" hidden></p><p id="enthalpy" class="question-enthalpy" hidden></p><p id="instruction" class="small"></p>
    <div id="diagram"></div><div id="builder"></div>
@@ -26,11 +25,12 @@
    <p id="hintText" class="hint" hidden></p>
    <section id="feedback" class="feedback" aria-live="polite" hidden></section>
    <button id="next" class="primary next" hidden>Next question →</button>
-   <p id="session" class="small session"></p>
+   <div class="actions"><button id="reset" class="quiet">Reset progress</button></div>
   </section>
  </div>
 </main>
 <dialog id="resetDialog"><h2>Reset this activity?</h2><p>This clears energy and enthalpy progress in this browser.</p><form method="dialog"><button value="cancel" class="quiet">Keep progress</button><button value="reset" class="primary">Reset progress</button></form></dialog>
 <noscript><p>This activity needs JavaScript enabled.</p></noscript>
+  <script src="../../assets/question-header.js"></script>
 </body></html>
 

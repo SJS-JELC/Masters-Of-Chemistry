@@ -370,11 +370,14 @@
     }
 
     @media (max-width: 760px) {
-      .layout { grid-template-columns: 1fr; }
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .layout > * { min-width: 0; }
       .controls { position: static; }
       .response-actions, .mark-footer { align-items: stretch; flex-direction: column; }
       .response-actions button, .mark-footer button { width: 100%; }
     }
+
+    .question-review-id { white-space: normal; overflow-wrap: anywhere; }
 
     @media print {
       .controls, .response-form, .review-grid { display: none; }
@@ -387,3 +390,23 @@
     .test-mode-embedded .layout { display: block; }
     .test-mode-embedded .page { max-width: 1100px; padding-top: 12px; }
     .test-mode-embedded .workspace-panel { border: 0; background: transparent; padding: 12px 0; }
+
+/* Pupil marking replaces the teacher's left-hand question controls. */
+.marking-pane{display:none}
+.comparison-pupil .layout{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);align-items:start}
+.comparison-pupil .controls{display:none!important}
+.comparison-pupil .marking-pane{display:block;padding:22px;min-width:0}
+.comparison-pupil .marking-pane .question-review{display:block!important;padding:0;margin:0 0 20px;border:0;background:none}
+.comparison-pupil .marking-pane .question-review-id{display:inline-flex;min-height:28px;align-items:center;padding:4px 10px;border:1px solid rgba(255,94,203,.46);border-radius:999px;background:rgba(255,94,203,.1);color:#ff5ecb;font:700 11px/1.3 Comfortaa,sans-serif;letter-spacing:.08em;white-space:nowrap}
+.comparison-pupil .marking-pane .question-review-loader{display:none}
+.comparison-pupil .marking-pane .response-actions{margin:0}
+.comparison-pupil .marking-pane .review-card{border:0;background:none;padding:0;box-shadow:none}
+.comparison-pupil .marking-pane .decision-row{flex-wrap:wrap}
+.comparison-pupil .review-grid{display:block}
+.comparison-pupil .marking-pane .mark-footer{flex-wrap:wrap}
+.comparison-pupil .marking-pane .result{text-align:center}
+@media(max-width:800px){.comparison-pupil .layout{grid-template-columns:minmax(0,1fr)}.comparison-pupil .workspace-panel{grid-row:1}.comparison-pupil .marking-pane{grid-row:2}}
+@media print{.marking-pane{display:none!important}}
+
+.comparison-pupil .marking-pane:not(:has(.review-card)){display:none}
+.comparison-pupil .layout:not(:has(.marking-pane .review-card)){grid-template-columns:minmax(0,1fr)}

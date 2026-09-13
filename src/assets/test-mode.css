@@ -65,12 +65,25 @@
 
 /* Revision keeps only the back control and unlabelled mastery bars. */
 .test-navigation #testChange{display:none}
-.test-topic-all{display:none}
+.test-topic-all,.test-year-all{display:none}
 .test-selecting .topic-section h3{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
 .test-selecting .topic-section .topic-trigger{width:auto;flex:1}
-.test-selecting .test-topic-all{display:inline-block;flex:0 0 auto;border:1px solid #62e3c066;border-radius:999px;padding:5px 9px;background:#142637;color:#62e3c0;font:700 .6rem Comfortaa,system-ui,sans-serif;cursor:pointer}
-.test-topic-all:focus-visible{outline:2px solid #ffee8a;outline-offset:3px}
-.test-topic-all[aria-pressed="true"]{background:#21483f}
+.test-selecting .test-topic-all,.test-selecting .test-year-all{display:inline-block;flex:0 0 auto;border:1px solid #62e3c066;border-radius:999px;padding:5px 9px;background:#142637;color:#62e3c0;font:700 .6rem Comfortaa,system-ui,sans-serif;cursor:pointer}
+.test-topic-all:focus-visible,.test-year-all:focus-visible{outline:2px solid #ffee8a;outline-offset:3px}
+.test-topic-all[aria-pressed="true"],.test-year-all[aria-pressed="true"]{background:#21483f}
+.test-selecting .year-card-heading{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.test-selecting .year-card-heading h2{margin:0}
+.test-year-all:disabled{opacity:.4;cursor:default}
+html[data-learning-mode="teacher"] .test-tile-row,html[data-learning-mode="teacher"] #testMode,html[data-learning-mode="teacher"] #testSelection,html[data-learning-mode="teacher"] .test-navigation{display:none!important}
 #testQuestionId{font-size:.7rem;color:#ff5ecb;overflow-wrap:anywhere;border:1px solid rgba(255,94,203,.34);border-radius:999px;padding:4px 9px;background:rgba(85,246,255,.055)}
 #testQuestionId:empty{display:none}
 #testCurrentBars>div>span:first-child{display:none}
+
+.test-navigation #testCurrentBars{width:270px;flex:0 1 270px;margin:0 12px 0 0}
+@media(max-width:700px){.test-revising .brand{flex-wrap:wrap}.test-navigation{flex:1 0 100%;justify-content:flex-end}.test-navigation #testCurrentBars{width:220px;flex:0 1 220px}}
+
+.test-navigation #testCurrentBars.mastery-display{width:auto;flex:0 1 auto;margin:0 12px 0 0;gap:20px}
+#testCurrentBars.mastery-display>.mastery-meter{font-size:11px}
+#testCurrentBars.mastery-display>.mastery-meter>.mastery-label{display:block;color:inherit}
+#testCurrentBars.mastery-display .mastery-bar{overflow:visible}
+@media(max-width:700px){.test-navigation #testCurrentBars.mastery-display{gap:16px;margin-right:4px}.test-navigation #testCurrentBars .mastery-meter{width:90px;min-width:70px;flex-basis:90px}}

@@ -14,7 +14,7 @@
     if(!mastery.validate(session)||session.completed||(session.practice||"mastery")!==practice||(practice==="grade"&&session.grade!==grade)||session.selected.length!==ids.length)session=mastery.create(ids,crypto.getRandomValues(new Uint32Array(1))[0],{practice,grade});
     const stack=byId("questionPanel").parentElement;
     const progress=document.createElement("section");progress.className="panel practice-progress";progress.setAttribute("aria-label","Practice progress");
-    progress.innerHTML='<div class="practice-heading"><strong id="practiceTitle"></strong><span id="practiceBand"></span></div><div id="bandProgress" class="band-progress"></div><p id="practicePosition"></p><p id="storageWarning" class="storage-warning" role="status" hidden></p>';
+    progress.innerHTML='<div class="practice-heading"><strong id="practiceTitle"></strong><span id="practiceBand"></span></div><p id="practicePosition"></p><p id="storageWarning" class="storage-warning" role="status" hidden></p>';
     stack.prepend(progress);
     document.querySelector(".layout").classList.add("pupil-practice-layout");
     document.querySelector("h1").textContent=title;
@@ -32,7 +32,7 @@
     function gauge(){
       byId("practiceTitle").textContent=practice==="mastery"?"MASTERY":mastery.bands[grade]+" practice";
       byId("practiceBand").textContent=session.completed?"Complete":mastery.bands[session.grade];
-      refreshRecords();byId("bandProgress").replaceChildren(...[1,2,3].map(g=>{const state=progressModel.summarise(records,leafId,g);const box=document.createElement("div");box.dataset.grade=g;box.dataset.mastered=state.mastered;box.className="band-score";const label=document.createElement("span");label.textContent=mastery.bands[g];box.append(label,progressModel.masteryBar(state.score,mastery.bands[g]+' mastery',g));return box;}));
+      refreshRecords();progressModel.renderHeader(records,leafId);
       const family=session.current&&mastery.families.find(f=>f.id===session.current.family).label;
       byId("practicePosition").textContent=session.completed?"Mastery achieved at every grade band.":family+" · "+(practice==="grade"?"Cycle "+(session.cycle||1):session.round==="review"?"Mastery review":"One of each");
     }

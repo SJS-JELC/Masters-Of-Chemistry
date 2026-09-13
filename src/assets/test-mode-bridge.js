@@ -34,10 +34,10 @@
         }
         const reportTitle = () => {
           const title = document.querySelector('#questionTitle, [data-question-title], #questionPanel .question-header h3');
-          const text = title?.textContent?.trim() || 'Question';
-          const questionId = document.querySelector('.review-id, .question-review-id, #printedReviewId')?.textContent?.trim() || '';
+          const text = document.documentElement.dataset.revisionTitle === 'none' ? '' : title?.textContent?.trim() || 'Question';
+          const questionId = document.querySelector('.review-id, .question-review-id, #printedReviewId')?.textContent?.match(/\b[A-Z]{2,3}-[A-Z0-9]{6}\b/)?.[0] || '';
           const signature = text + '\\n' + questionId;
-          if (signature !== reportTitle.previous) { reportTitle.previous = signature; send('title',{title:text,questionId}); }
+          if (signature !== reportTitle.previous) { reportTitle.previous = signature; send('title',{title:text,questionId,inlineQuestionId:document.documentElement.dataset.revisionCode === 'inline'}); }
           if (title) title.classList.add('test-transferred-title');
         };
         if (root.MutationObserver) new MutationObserver(reportTitle).observe(document.body,{childList:true,subtree:true,characterData:true});

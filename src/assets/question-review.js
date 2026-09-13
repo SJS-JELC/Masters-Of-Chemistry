@@ -3,11 +3,14 @@
   const capacity = 36 ** 6;
   const initialId = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('review') : null;
   function isTeacher() { return typeof root.ChemistryMode !== 'undefined' ? root.ChemistryMode.get()==='teacher' : new URLSearchParams(location.search).get('mode')==='teacher'; }
+  function validatePrefix(prefix) { if (!/^[A-Z]{2,3}$/.test(prefix)) throw new Error("Question codes need a two- or three-letter prefix."); }
   function format(prefix, value) {
+    validatePrefix(prefix);
     if (!Number.isSafeInteger(value) || value < 0 || value >= capacity) throw new Error('Invalid review ID.');
     return `${prefix}-${value.toString(36).toUpperCase().padStart(6, '0')}`;
   }
   function parse(prefix, text) {
+    validatePrefix(prefix);
     const match = String(text).trim().toUpperCase().match(new RegExp(`^${prefix}-([0-9A-Z]{6})$`));
     if (!match) throw new Error(`Enter a review ID such as ${prefix}-2PAZNL.`);
     return parseInt(match[1], 36);
@@ -64,10 +67,10 @@
       return side;
     }
     if(path.includes('acid-base-calculations')||path.includes('bond-enthalpy'))return document.querySelector('.control-column');
-    if(path.includes('structure-and-bonding'))return document.querySelector('.controls');
+    if(path.includes('structure-and-bonding'))return isTeacher() ? document.querySelector('.controls') : target;
     if(path.includes('energy-enthalpy')) {
       const teacher=target.closest('.teacher-bank');
-      if(!teacher)return document.querySelector('.mastery');
+      if(!teacher)return target;
       let side=teacher.querySelector('.review-sidebar');
       if(!side){side=document.createElement('aside');side.className='review-sidebar';teacher.prepend(side);teacher.classList.add('review-teacher-layout');}
       return side;
@@ -98,7 +101,7 @@
     bar.querySelector('[role="status"]').textContent = '';
     bar.dataset.reviewId = id;
     // Keep mode switches and copied page links on the same question.
-    if (load && /^[A-Z]+-[0-9A-Z]{6}$/.test(id)) { const url = new URL(location.href); url.searchParams.set('review', id); try { history.replaceState(null, '', url); } catch (_) {} }
+    if (load && /^[A-Z]{2,3}-[0-9A-Z]{6}$/.test(id)) { const url = new URL(location.href); url.searchParams.set('review', id); try { history.replaceState(null, '', url); } catch (_) {} }
   }
   function requested(load) {
     if(!isTeacher())return;

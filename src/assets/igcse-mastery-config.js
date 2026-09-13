@@ -5,9 +5,10 @@
   const activities = {
     "dot-and-cross-ionic": { leafId: "fourth-3-1", availableGrades: Object.freeze([1, 2]), halfLives: { 1: 2, 2: 2 } },
     "dot-and-cross-covalent": { leafId: "fourth-3-2", availableGrades: Object.freeze([1, 2, 3]), halfLives: { 1: 2, 2: 2, 3: 2 } },
+    "energetics-practical": { leafId: "lower-10-2", availableGrades: Object.freeze([2, 3]), halfLives: { 2: 3, 3: 3 } },
     "calorimetry": { leafId: "lower-10-3", halfLives: { 1: 2, 2: 2, 3: 2 } },
     "bond-enthalpy": { leafId: "lower-10-4", halfLives: { 1: 2, 2: 2, 3: 2 } },
-    "structure-and-bonding": { leafId: "lower-6-5", halfLives: { 1: 6, 2: 6, 3: 6 } },
+    "structure-and-bonding": { leafId: "lower-6-5", availableGrades: Object.freeze([2, 3]), halfLives: { 2: 6, 3: 6 } },
     // Grade 9 is reserved for future content; its half-life remains centrally tunable.
     "energy-enthalpy": { leafId: "lower-10-1", availableGrades: Object.freeze([1, 2]), halfLives: { 1: 3, 2: 3, 3: 10 } }
   };

@@ -9,8 +9,7 @@
   root.MastersSite = site;
   if (typeof document !== "undefined") {
     document.querySelectorAll("[data-site-version]").forEach((element) => {
-      element.textContent = site.version;
-      element.title = `Prepared ${site.released}`;
+      element.remove();
     });
   }
 })(typeof globalThis !== "undefined" ? globalThis : window);

@@ -4,7 +4,10 @@
   // The bridge handshake must complete before the question is chosen.  In a
   // normal standalone visit this resolves immediately with null.
   const test=(await B?.connect())||null;
+  const teacher=!test&&globalThis.ChemistryMode?.get()==='teacher';
   const $=id=>document.getElementById(id),R=DotCrossRenderer,C=DotCrossCore,questions=DotCrossData.questions;
+  const progressModel=globalThis.MastersProgress;
+  const reviewBank=QuestionReview.bank('DC',questions);
   const copy=x=>JSON.parse(JSON.stringify(x)),empty=()=>({atoms:[],electrons:[],groups:[]});
   const svg=$('canvas'),drafts=new Map();
   // Keep the palette in step with the bank without introducing per-question
@@ -15,6 +18,8 @@
   }
   let state=empty(),selected=[],history=[],future=[],question=null,tool='atom',selectedElement='H',pendingCharge=1,serial=0,checked=false;
   let assessment=null,feedbackResult=null,assessmentEmitted=false;
+  let masteryRecords=[];
+  let attemptId=crypto.randomUUID();
   let cursor={x:400,y:325},showCursor=false,drag=null,hover=null,chargePreview=null,circles=true,suppressClick=false;
   function id(prefix){return prefix+(++serial);}
   function say(message){$('status').textContent=message;}
@@ -24,7 +29,7 @@
   function limits(){const b=svg.viewBox.baseVal;return{left:b.x,right:b.x+b.width,top:b.y,bottom:b.y+b.height};}
   function clamp(p){const b=limits();return{x:bounds(p.x,b.left,b.right),y:bounds(p.y,b.top,b.bottom)};}
   function snapshot(){return copy(state);}
-  function clearFeedback(){hover=null;chargePreview=null;checked=false;feedbackResult=null;$('showAnswer').disabled=true;$('showAnswer').textContent='Show answer';$('feedback').replaceChildren();$('answer').close();syncTestControls();}
+  function clearFeedback(){hover=null;chargePreview=null;checked=false;feedbackResult=null;$('showAnswer').disabled=!teacher;$('showAnswer').textContent='Show answer';$('feedback').replaceChildren();$('answer').close();syncTestControls();}
   function scoreFor(result){
     if(!state.atoms.length&&!state.electrons.length&&!state.groups.length)return 0;
     if(result.correct)return 1;
@@ -47,6 +52,14 @@
   function syncTestControls(){if($('next'))$('next').disabled=!!test&&!assessment;}
   function snapshotForBridge(){return question?{version:2,questionId:question.id,category:question.category,grade,diagram:snapshot(),serial,history:copy(history),future:copy(future),circles,checked,assessment:copy(assessment),feedback:copy(feedbackResult),remaining:copy(remaining)}:null;}
   function saveTest(){if(test&&question)return B.save(snapshotForBridge());}
+  function refreshMastery(){if(test||teacher||!progressModel)return;try{masteryRecords=progressModel.merge(progressModel.read(localStorage),masteryRecords);}catch(_){};progressModel.renderHeader?.(masteryRecords,category==='ionic'?'fourth-3-1':'fourth-3-2',allowedGrades.filter(Boolean));}
+  function recordMastery(){
+    if(test||teacher||!assessment||assessment.recorded||!progressModel)return;
+    const leafId=category==='ionic'?'fourth-3-1':'fourth-3-2';
+    const result={id:attemptId,leafId,grade,score:assessment.score,completedAt:assessment.completedAt,question:question.id,assisted:false};
+    try{masteryRecords=progressModel.append(progressModel.merge(progressModel.read(localStorage),masteryRecords),result);localStorage.setItem(progressModel.key,JSON.stringify(masteryRecords));assessment.recorded=true;refreshMastery();}
+    catch(_){assessment.recorded=true;}
+  }
   async function emitAssessment(){if(!test||!assessment||assessmentEmitted)return;assessmentEmitted=true;await B.result({score:assessment.score,independent:true,completedAt:assessment.completedAt,evidence:{questionId:question.id,category:question.category,grade,score:assessment.score,criteria:copy(assessment.criteria),completedAt:assessment.completedAt}});}
   function organise(){const regions=new Map();for(const e of state.electrons){const a=e.anchor,k=a.kind==='atom'?`a:${a.atomId}`:`b:${[a.a,a.b].sort().join(':')}`;if(!regions.has(k))regions.set(k,[]);regions.get(k).push(e);}for(const es of regions.values()){
       es.sort((a,b)=>a.anchor.slot-b.anchor.slot);
@@ -203,6 +216,8 @@
   new ResizeObserver(()=>render()).observe(svg);
   const params=new URLSearchParams(location.search);
   let category=['ionic','covalent','mixed'].includes(params.get('category'))?params.get('category'):'all';
+  const requestedPractice=params.get('practice');
+  let practice=requestedPractice==='mastery'?'mastery':(requestedPractice==='grade'||params.has('grade')?'grade':'grade');
   let allowedGrades=category==='mixed'?[0]:category==='ionic'?[0,1,2]:[0,1,2,3];
   let requestedGrade=Number(params.get('grade')??(category==='all'?0:1));
   let grade=allowedGrades.includes(requestedGrade)?requestedGrade:(category==='all'?0:1);
@@ -213,12 +228,22 @@
     }[test.leafId];
     if(testCategory){category=testCategory;allowedGrades=[Number(test.level)];requestedGrade=Number(test.level);grade=requestedGrade;}
   }
+  if(category==='all'||category==='mixed')practice='grade';
   let questionKey='',remaining=[];
   function scope(){return `${category}:${grade}`;}
+  const standaloneLeaf=category==='ionic'?'fourth-3-1':category==='covalent'?'fourth-3-2':null;
+  const masteryGrades=allowedGrades.filter(Boolean);
+  function selectMasteryGrade(){
+    if(!standaloneLeaf||!progressModel||!masteryGrades.length)return grade||1;
+    try{masteryRecords=progressModel.merge(progressModel.read(localStorage),masteryRecords);}catch(_){}
+    return masteryGrades.find(g=>!progressModel.summarise(masteryRecords,standaloneLeaf,g).mastered)||masteryGrades[masteryGrades.length-1];
+  }
+  if(!test&&practice==='mastery'&&standaloneLeaf){grade=selectMasteryGrade();}
   function hideFormula(q){return q.category==='ionic'&&grade===2;}
   function displayFormula(formula){return formula.replace(/\d/g,digit=>'₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);}
-  function pool(){const seen=new Set();return questions.filter(q=>{const key=q.category==='covalent'?`covalent:${q.formula}`:q.id;if((category!=='all'&&q.category!==category)||(grade!==0&&!q.grades?.includes(grade))||seen.has(key))return false;seen.add(key);return true;});}
-  function save(){if(questionKey)drafts.set(questionKey,{state:snapshot(),history:copy(history),future:copy(future),checked,assessment:copy(assessment),feedback:copy(feedbackResult),serial,circles});}
+  function pool(){const seen=new Set();return questions.filter(q=>{const key=!teacher&&q.category==='covalent'?`covalent:${q.formula}`:q.id;if((category!=='all'&&q.category!==category)||(grade!==0&&!q.grades?.includes(grade))||seen.has(key))return false;seen.add(key);return true;});}
+  const stateKey=standaloneLeaf?`dot-and-cross-${standaloneLeaf}-${practice}-v1`:null;
+  function save(){if(!questionKey)return;const saved={state:snapshot(),history:copy(history),future:copy(future),checked,assessment:copy(assessment),feedback:copy(feedbackResult),serial,circles,attemptId};drafts.set(questionKey,saved);if(!test&&!teacher&&stateKey){try{localStorage.setItem(stateKey,JSON.stringify({questionKey,...saved}));}catch(_){}}}
   function testQuestion(restore){
     const candidates=pool();
     const byId=id=>candidates.find(q=>q.id===id);
@@ -231,32 +256,38 @@
     const hash=Array.from(String(test.attemptId||'')).reduce((n,ch)=>(Math.imul(n^ch.charCodeAt(0),16777619)>>>0),2166136261)>>>0;
     return queue[hash%queue.length]||candidates[0];
   }
-  function load(id,restore=null){
+  function load(id,restore=null,fresh=false){
     save();question=questions.find(q=>q.id===id);questionKey=`${scope()}:${id}`;
     if(test)remaining=(Array.isArray(restore?.remaining)?restore.remaining:pool().map(q=>q.id)).filter(next=>next!==id);
     else remaining=remaining.filter(next=>next!==id);
-    const prior=test?restore:drafts.get(questionKey);state=prior?.diagram?copy(prior.diagram):prior?.state?copy(prior.state):empty();history=Array.isArray(prior?.history)?copy(prior.history):[];future=Array.isArray(prior?.future)?copy(prior.future):[];serial=Number.isInteger(prior?.serial)?prior.serial:Math.max(0,...state.atoms.map(a=>Number(String(a.id).replace(/^\D+/,'')||0)),...state.electrons.map(e=>Number(String(e.id).replace(/^\D+/,'')||0)),...state.groups.map(g=>Number(String(g.id).replace(/^\D+/,'')||0)));selected=[];assessment=prior?.assessment?copy(prior.assessment):null;feedbackResult=prior?.feedback?copy(prior.feedback):null;assessmentEmitted=false;if(prior&&Object.prototype.hasOwnProperty.call(prior,'circles'))circles=prior.circles!==false;checked=!!prior?.checked;
+    let stored=null;if(!test&&!teacher&&!drafts.has(questionKey)&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');if(candidate?.questionKey===questionKey)stored=candidate;}catch(_){} }
+    const prior=test?restore:(fresh?null:drafts.get(questionKey)||stored);state=prior?.diagram?copy(prior.diagram):prior?.state?copy(prior.state):empty();history=Array.isArray(prior?.history)?copy(prior.history):[];future=Array.isArray(prior?.future)?copy(prior.future):[];serial=Number.isInteger(prior?.serial)?prior.serial:Math.max(0,...state.atoms.map(a=>Number(String(a.id).replace(/^\D+/,'')||0)),...state.electrons.map(e=>Number(String(e.id).replace(/^\D+/,'')||0)),...state.groups.map(g=>Number(String(g.id).replace(/^\D+/,'')||0)));selected=[];assessment=prior?.assessment?copy(prior.assessment):null;feedbackResult=prior?.feedback?copy(prior.feedback):null;assessmentEmitted=false;attemptId=prior?.attemptId||crypto.randomUUID();if(prior&&Object.prototype.hasOwnProperty.call(prior,'circles'))circles=prior.circles!==false;checked=!!prior?.checked;
     // A restored test snapshot is external state.  Reject malformed diagrams
     // safely while preserving the normal editor's ability to hold an
     // intentionally incomplete student drawing during the current attempt.
     if(C.validateState(state).length){state=empty();history=[];future=[];serial=0;assessment=null;feedbackResult=null;checked=false;}
-    $('prompt').textContent='Draw a dot & cross diagram for '+(question.category==='covalent'?displayFormula(question.formula):question.name.toLowerCase()+(hideFormula(question)?'':`, ${displayFormula(question.formula)}`));$('questionId').textContent=`DC-${String(questions.indexOf(question)+1).padStart(3,'0')}`;$('questionId').dataset.question=id;cursor={x:400,y:325};showCursor=false;setTool('atom');
-    $('showAnswer').disabled=!checked;$('showAnswer').textContent='Show answer';if(feedbackResult)feedbackFor(feedbackResult);else $('feedback').replaceChildren();syncTestControls();saveTest();if(test&&assessment)emitAssessment();
+    $('prompt').textContent='Draw a dot & cross diagram for '+(question.category==='covalent'?displayFormula(question.formula):question.name.toLowerCase()+(hideFormula(question)?'':`, ${displayFormula(question.formula)}`));$('questionId').textContent=reviewBank.id(question);$('questionId').dataset.question=id;if(teacher)$('teacherQuestion').value=id;cursor={x:400,y:325};showCursor=false;setTool('atom');
+    $('showAnswer').disabled=!teacher&&!checked;$('showAnswer').textContent='Show answer';if(feedbackResult)feedbackFor(feedbackResult);else $('feedback').replaceChildren();syncTestControls();save();saveTest();if(test&&assessment)emitAssessment();
   }
-  $('next').addEventListener('click',()=>{if(test){if(!assessment){say('Check this diagram before continuing.');return;}B.next();return;}if(!remaining.length)remaining=pool().map(q=>q.id).filter(id=>id!==question.id);load(remaining.length?remaining[Math.floor(Math.random()*remaining.length)]:question.id);});
+  $('next').addEventListener('click',()=>{if(test){if(!assessment){say('Check this diagram before continuing.');return;}B.next();return;}if(practice==='mastery'&&standaloneLeaf){refreshMastery();const nextGrade=selectMasteryGrade();if(nextGrade!==grade){grade=nextGrade;remaining=[];} }if(!remaining.length)remaining=pool().map(q=>q.id).filter(id=>id!==question.id);load(remaining.length?remaining[Math.floor(Math.random()*remaining.length)]:question.id,null,true);});
   $('check').addEventListener('click',async()=>{
     const result=C.check(state,question);checked=true;feedbackResult=copy(result);$('showAnswer').disabled=false;feedbackFor(result);
     // The scheduler receives only the first assessment.  Later edits, undo,
     // rechecks and answer reveals may update local feedback but never improve
     // the result already recorded for this attempt.
-    const firstAssessment=!assessment;if(firstAssessment){const score=scoreFor(result),completedAt=Date.now();assessment={score,correct:result.correct,criteria:copy(result.criteria),completedAt,independent:true};}
-    render();syncTestControls();saveTest();
+    const firstAssessment=!assessment;if(firstAssessment){const score=scoreFor(result),completedAt=Date.now();assessment={score,correct:result.correct,criteria:copy(result.criteria),completedAt,independent:true,recorded:false};recordMastery();}
+    render();syncTestControls();saveTest();save();
     if(test&&firstAssessment)await emitAssessment();
   });
   function drawAnswer(){const reference=C.reference(question);R.draw($('answerCanvas'),reference,{circles,answer:true});$('answer').querySelector('h3').textContent=question.category==='covalent'?`One valid example: ${question.name}`:'Checked answer';$('explanation').textContent=(question.category==='covalent'?'Other valid neutral isomers of this formula are accepted. ':'')+question.explanation;$('answerCanvas').setAttribute('aria-label',`${question.name}: ${question.explanation}`);}
-  $('showAnswer').addEventListener('click',()=>{if(!checked)return;drawAnswer();$('answer').showModal();});
+  $('showAnswer').addEventListener('click',()=>{if(!checked&&!teacher)return;drawAnswer();$('answer').showModal();});
   $('closeAnswer').addEventListener('click',()=>$('answer').close());
   const items=pool();
+  if(teacher){
+    $('teacherControls').hidden=false;
+    $('teacherQuestion').replaceChildren(...items.map(q=>{const option=document.createElement('option');option.value=q.id;option.textContent=reviewBank.id(q)+' · '+q.name+' · '+displayFormula(q.formula);return option;}));
+    $('teacherQuestion').addEventListener('change',()=>{$('answer').close();load($('teacherQuestion').value);});
+  }
   if(test){
     const saved=test.state;
     const restore=saved?.version===2&&saved.category===category&&saved.grade===grade&&items.some(q=>q.id===saved.questionId)&&!C.validateState(saved.diagram).length?saved:{};
@@ -264,5 +295,5 @@
     let queueSeed=(Array.isArray(restore.remaining)?restore.remaining:Array.isArray(test.previous?.remaining)?test.previous.remaining:[]).filter(id=>eligible.has(id));
     if(!restore.questionId&&!queueSeed.length)queueSeed=items.map(q=>q.id);
     const initial=testQuestion({...restore,remaining:queueSeed});if(initial){load(initial.id,{...restore,remaining:queueSeed});}
-  }else{remaining=items.map(q=>q.id);load(items.find(q=>q.id===params.get('question'))?.id||items[0].id);}
+  }else{remaining=items.map(q=>q.id);let savedId=null;if(!test&&!teacher&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');const prefix=`${scope()}:`;if(candidate?.questionKey?.startsWith(prefix))savedId=candidate.questionKey.slice(prefix.length);}catch(_){} }load(items.find(q=>q.id===params.get('question'))?.id||items.find(q=>q.id===savedId)?.id||items[0].id);refreshMastery();}
 })();

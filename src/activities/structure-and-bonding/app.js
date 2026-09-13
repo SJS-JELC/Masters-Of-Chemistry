@@ -2,8 +2,11 @@
     "use strict";
     const B = globalThis.TestModeBridge;
     const test = (await B?.connect()) || null;
-    const requestedGrade = String(test?.level || new URLSearchParams(location.search).get("grade") || "");
-    if (["1", "2", "3"].includes(requestedGrade)) document.getElementById("responseLevel").value = requestedGrade;
+    const params = new URLSearchParams(location.search);
+    const requestedGrade = [2, 3].includes(Number(test?.level || params.get("grade"))) ? String(test?.level || params.get("grade")) : "2";
+    const practice = params.get("practice") === "mastery" ? "mastery" : "grade";
+    const availableGrades = [2, 3];
+    if (["2", "3"].includes(requestedGrade)) document.getElementById("responseLevel").value = requestedGrade;
 
     const core = globalThis.StructureBondingComparisonCore;
     const focus = document.getElementById("focus");
@@ -13,6 +16,14 @@
     const controlNote = document.getElementById("controlNote");
     const panel = document.getElementById("questionPanel");
     const controlMeta = document.getElementById("controlMeta");
+    const layout = document.querySelector(".layout");
+    const markingPane = document.createElement("aside");
+    markingPane.className = "panel marking-pane"; markingPane.setAttribute("aria-label", "Marking and feedback");
+    layout.insertBefore(markingPane, panel);
+    const pupil = !!test || globalThis.ChemistryMode?.get() !== "teacher";
+    document.documentElement.classList.toggle("comparison-pupil", pupil);
+    if (pupil) { document.querySelector(".controls").hidden = true; focus.value = "any"; focus.disabled = true; responseLevel.disabled = true; generateButton.disabled = true; }
+
 
     let current = null;
     let lockedText = "";
@@ -26,24 +37,41 @@
     let attemptId = test?.attemptId || crypto.randomUUID(), recorded = false, masteryRecords = [];
     const progressModel = globalThis.MastersProgress;
     if (!test) try { masteryRecords = progressModel.read(localStorage); } catch (_) {}
+    const sessionKey = `structure-and-bonding-${practice}-${practice === "grade" ? (requestedGrade || "2") : "mastery"}-v1`;
+    function refreshMastery() {
+      if (test || teacherMode || !progressModel) return;
+      try { masteryRecords = progressModel.merge(progressModel.read(localStorage), masteryRecords); } catch (_) {}
+      progressModel.renderHeader?.(masteryRecords, "lower-6-5", availableGrades);
+      const states = availableGrades.map((grade) => progressModel.summarise(masteryRecords, "lower-6-5", grade));
+      controlNote.dataset.mastery = states.map((state, index) => `${progressModel.bands[availableGrades[index]]}: ${state.mastered ? "mastered" : "in progress"}`).join(" · ");
+    }
+    function saveStandalone() {
+      if (test || teacherMode || globalThis.ChemistryMode?.get() === "teacher" || !current) return;
+      const payload = { questionId: current.id, level: Number(responseLevel.value), focus: focus.value, attemptId,
+        recorded, lockedText, judgements, activePoint, awaitingEvidence, finished, completedAt,
+        responses: [...panel.querySelectorAll(".student-response")].map((field) => field.value),
+        tableValues: [...panel.querySelectorAll(".table-choice")].map((choice) => choice.value) };
+      try { localStorage.setItem(sessionKey, JSON.stringify(payload)); } catch (_) { controlNote.textContent += " This browser cannot save the current question."; }
+    }
     function recordMastery(correct) {
       if (test || recorded || teacherMode || globalThis.ChemistryMode?.get() === "teacher") return;
       const result = { id: attemptId, leafId: "lower-6-5", grade: Number(responseLevel.value),
         score: progressModel.questionScore(correct), completedAt: Date.now(),
         question: current.id, selfAssessed: Number(responseLevel.value) > 1 };
-      try { masteryRecords = progressModel.merge(progressModel.read(localStorage), masteryRecords); } catch (_) {}
-      masteryRecords = progressModel.append(masteryRecords, result); recorded = true;
-      try { localStorage.setItem(progressModel.key, JSON.stringify(masteryRecords)); }
+      try { masteryRecords = progressModel.append(progressModel.merge(progressModel.read(localStorage), masteryRecords), result); recorded = true; localStorage.setItem(progressModel.key, JSON.stringify(masteryRecords)); refreshMastery(); saveStandalone(); }
       catch (_) { controlNote.textContent += " This browser cannot save mastery progress."; }
     }
 
-    const reviewBank = QuestionReview.bank('SBC', core.questions.flatMap(question=>[1,2,3].map(level=>({question,level,id:question.id+':'+level}))));
+    const reviewBank = QuestionReview.bank('SBC', core.questions.flatMap(question=>availableGrades.map(level=>({question,level,id:question.id+':'+level}))));
     function loadReview(id) {
       if (test) return;
       const entry = reviewBank.get(id); current = entry.question; responseLevel.value = entry.level;
       focus.value = 'any'; clearResponseState(); renderQuestion();
     }
-    function mountReview(id) { QuestionReview.mount(panel, id, test ? null : loadReview); }
+    function mountReview(id) {
+      QuestionReview.mount(pupil ? markingPane : panel, id, pupil ? null : loadReview);
+      if (pupil) markingPane.querySelector('.question-review-id').textContent = id;
+    }
 
     function hash(value) {
       let number = 2166136261;
@@ -166,6 +194,7 @@
     }
 
     function renderQuestion() {
+      markingPane.replaceChildren();
       const marks = current.points.length;
       const level = Number(responseLevel.value);
       const reviewId = reviewBank.id({id:current.id+':'+level});
@@ -188,6 +217,10 @@
         <p class="prompt">${core.escapeHtml(current.prompt)} <span class="marks">[${marks}]</span></p>
         ${level === 1 ? levelOneHtml() : level === 2 ? levelTwoHtml() : levelThreeHtml()}`;
       mountReview(reviewId);
+      if (pupil) {
+        const actions = panel.querySelector('.response-actions');
+        if (actions) { const button = actions.querySelector('button'); if (button) button.textContent = 'Check answer'; }
+      }
     }
 
     function renderHighlightedAnswer() {
@@ -212,6 +245,7 @@
     }
 
     function renderReview() {
+      if (pupil) markingPane.querySelectorAll('.response-actions, .validation, .review-card').forEach(node => node.remove());
       const judged = judgements.filter((item) => item.status === "met" || item.status === "not-met").length;
       const score = judgements.filter((item) => item.status === "met").length;
       const pointNumber = activePoint === null ? null : activePoint + 1;
@@ -259,9 +293,10 @@
               <span class="progress">${judged} of ${current.points.length} points judged</span>
               <button id="finishMarking" type="button" ${judged !== current.points.length || activePoint !== null || finished ? "disabled" : ""}>Finish marking</button>
             </div>
-            ${finished ? `<div class="result"><strong>Self-assessed score: ${score}/${current.points.length}</strong><p>${score === current.points.length ? "Every marking point has linked evidence." : `${current.points.length - score} marking point${current.points.length - score === 1 ? " is" : "s are"} missing from this response.`}</p>${test ? '<button class="test-next" type="button">Next question →</button>' : ''}</div>` : ""}
+            ${finished ? `<div class="result"><strong>Self-assessed score: ${score}/${current.points.length}</strong><p>${score === current.points.length ? "Every marking point has linked evidence." : `${current.points.length - score} marking point${current.points.length - score === 1 ? " is" : "s are"} missing from this response.`}</p>${test || pupil ? '<button class="test-next" type="button">Next question →</button>' : ''}</div>` : ""}
           </section>
         </div>`;
+      if (pupil) { const scheme = panel.querySelector('[aria-labelledby="scheme-title"]'); if (scheme) markingPane.append(scheme); }
     }
 
     function selectionInside(container) {
@@ -291,6 +326,7 @@
       window.getSelection()?.removeAllRanges();
       renderReview();
       saveTest();
+      saveStandalone();
     }
 
     function renderLevelOneResult(correct) {
@@ -304,7 +340,7 @@
         feedback.textContent = isCorrect ? "✓ Correct" : `Correct answer: ${choice.dataset.answer}`;
       });
       document.getElementById("checkTable").disabled = true;
-      document.getElementById("levelOneOutcome").innerHTML = `<div class="table-result"><strong>${correct}/${choices.length} table choices correct</strong><p>This checks the scaffold, not the exam-mark total. Read across each completed row and use the table to build your explanation.</p>${test ? '<button class="test-next" type="button">Next question →</button>' : ''}</div>`;
+      document.getElementById("levelOneOutcome").innerHTML = `<div class="table-result"><strong>${correct}/${choices.length} table choices correct</strong><p>This checks the scaffold, not the exam-mark total. Read across each completed row and use the table to build the explanation.</p>${test || pupil ? '<button class="test-next" type="button">Next question →</button>' : ''}</div>`;
     }
 
     function checkLevelOneTable() {
@@ -330,10 +366,12 @@
       validation.textContent = "";
       document.getElementById("checkTable").disabled = true;
       recordMastery(choices.map(choice => choice.value === choice.dataset.answer));
+      saveStandalone();
       document.getElementById("levelOneOutcome").innerHTML = `
         <div class="table-result">
           <strong>${correct}/${choices.length} table choices correct</strong>
           <p>This checks the scaffold, not the exam-mark total. Read across each completed row and use the table to build your explanation.</p>
+          ${!test && practice === "mastery" ? '<button class="test-next" type="button">Next question →</button>' : ''}
         </div>`;
       if (test) {
         testCompleted = true;
@@ -365,6 +403,7 @@
       finished = false;
       renderReview();
       saveTest();
+      saveStandalone();
     }
 
     function chooseDecision(index, decision) {
@@ -378,6 +417,7 @@
       }
       renderReview();
       saveTest();
+      saveStandalone();
       if (awaitingEvidence) document.getElementById("lockedAnswer").focus();
     }
 
@@ -388,6 +428,7 @@
       completedAt = test ? Date.now() : null;
       recordMastery(judgements.map(item => item.status === "met"));
       renderReview();
+      saveStandalone();
       if (test) { await B.save(snapshot()); await emitTestResult(); }
     }
 
@@ -411,8 +452,26 @@
       completedAt = null;
     }
 
+    function practiceBand() {
+      if (practice === "grade") return ["2", "3"].includes(requestedGrade) ? Number(requestedGrade) : 2;
+      try { masteryRecords = progressModel.merge(progressModel.read(localStorage), masteryRecords); } catch (_) {}
+      return availableGrades.find((grade) => !progressModel.summarise(masteryRecords, "lower-6-5", grade).mastered) || availableGrades[availableGrades.length - 1];
+    }
+
+    function nextPractice() {
+      if (test) { B.next(); return; }
+      responseLevel.value = String(practiceBand());
+      const candidates = core.eligible(focus.value);
+      current = core.choose(focus.value, Math.random(), current?.id);
+      clearResponseState();
+      renderQuestion();
+      saveStandalone();
+      refreshMastery();
+    }
+
     function generate() {
       if (test) { B.next(); return; }
+      if (!teacherMode && practice === "mastery") { nextPractice(); return; }
       if (teacherMode) {
         const candidates = core.eligible(focus.value);
         const currentIndex = candidates.findIndex((question) => question.id === current?.id);
@@ -422,6 +481,7 @@
       }
       clearResponseState();
       renderQuestion();
+      saveStandalone();
     }
 
     function toggleTeacherMode() {
@@ -446,8 +506,8 @@
     });
     teacherModeButton.addEventListener("click", toggleTeacherMode);
 
-    panel.addEventListener("click", (event) => {
-      if (event.target.closest(".test-next")) { if (test) B.next(); return; }
+    layout.addEventListener("click", (event) => {
+      if (event.target.closest(".test-next")) { if (test) B.next(); else nextPractice(); return; }
       if (event.target.id === "checkTable") checkLevelOneTable();
       if (event.target.id === "lockAnswer") lockAnswer();
       if (event.target.id === "finishMarking") finishMarking();
@@ -466,10 +526,10 @@
     });
 
     panel.addEventListener("input", (event) => {
-      if (event.target.matches(".student-response")) saveTest();
+      if (event.target.matches(".student-response")) { saveTest(); saveStandalone(); }
     });
     panel.addEventListener("change", (event) => {
-      if (event.target.matches(".table-choice")) saveTest();
+      if (event.target.matches(".table-choice")) { saveTest(); saveStandalone(); }
     });
     document.addEventListener("keydown", (event) => {
       if (test && event.key === "Enter" && !event.repeat && !event.isComposing && testCompleted && panel.contains(event.target)) {
@@ -483,7 +543,7 @@
       responseLevel.value = requestedGrade;
       focus.disabled = true; responseLevel.disabled = true; generateButton.disabled = true; teacherModeButton.disabled = true;
       current = chooseTestQuestion();
-      const restored = test.state || {};
+      const restored = Number(test.state?.level) === Number(requestedGrade) ? test.state : {};
       lockedText = restored.lockedText || "";
       judgements = Array.isArray(restored.judgements) ? restored.judgements : [];
       activePoint = Number.isInteger(restored.activePoint) ? restored.activePoint : restored.activePoint === null ? null : 0;
@@ -506,7 +566,28 @@
       await B.save(snapshot());
       if (testCompleted) await emitTestResult();
     } else {
-      generate();
+      if (practice === "mastery" && globalThis.ChemistryMode?.get() !== "teacher") document.querySelector(".controls").hidden = true;
+      let restored = null;
+      try { restored = JSON.parse(localStorage.getItem(sessionKey) || "null"); } catch (_) {}
+      if (globalThis.ChemistryMode?.get() !== "teacher" && restored && availableGrades.includes(Number(restored.level)) && core.questions.some((question) => question.id === restored.questionId)) {
+        current = core.questions.find((question) => question.id === restored.questionId);
+        if (practice === "grade" && ["2", "3"].includes(requestedGrade)) responseLevel.value = requestedGrade;
+        else responseLevel.value = String(restored.level || practiceBand());
+        focus.value = pupil ? "any" : restored.focus || "any";
+        attemptId = restored.attemptId || crypto.randomUUID(); recorded = !!restored.recorded;
+        lockedText = restored.lockedText || ""; judgements = Array.isArray(restored.judgements) ? restored.judgements : [];
+        activePoint = Number.isInteger(restored.activePoint) ? restored.activePoint : restored.activePoint === null ? null : 0;
+        awaitingEvidence = !!restored.awaitingEvidence; finished = !!restored.finished; completedAt = Number(restored.completedAt) || null;
+        renderQuestion();
+        [...panel.querySelectorAll(".student-response")].forEach((field, index) => { field.value = restored.responses?.[index] || ""; });
+        [...panel.querySelectorAll(".table-choice")].forEach((choice, index) => { choice.value = restored.tableValues?.[index] || ""; });
+        if (lockedText) renderReview();
+        else if (recorded && Number(responseLevel.value) === 1) renderLevelOneResult([...panel.querySelectorAll(".table-choice")].filter(choice => choice.value === choice.dataset.answer).length);
+      } else {
+        responseLevel.value = String(practiceBand());
+        generate();
+      }
+      refreshMastery();
       QuestionReview.requested(loadReview);
     }
   }());

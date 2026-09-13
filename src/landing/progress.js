@@ -49,10 +49,10 @@
     return { score, mastery: score * 100, mastered: score > config.threshold, freshness: days <= 7 ? "fresh" : days <= 21 ? "steady" : "due", days, count: matches.length };
   }
   function achievement(records, leafId, now = Date.now()) {
-    const states = [1, 2, 3].map(grade => ({ ...summarise(records, leafId, grade, now), grade }));
+    const states = (settings(leafId)?.availableGrades || [1, 2, 3]).map(grade => ({ ...summarise(records, leafId, grade, now), grade }));
     let grade = 0;
     for (const state of states) { if (!state.mastered) break; grade = state.grade; }
-    const state = grade ? states[grade - 1] : states.find(item => item.mastery !== null) || states[0];
+    const state = grade ? states.find(item => item.grade === grade) : states.find(item => item.mastery !== null) || states[0];
     return { ...state, achievedGrade: grade, states };
   }
   // Never overwrite an existing first attempt.
@@ -64,7 +64,7 @@
   }
   function masteryBar(score, label = "Mastery", grade = 1) {
     const bar = document.createElement('span');
-    bar.className = 'mastery-bar'; bar.dataset.grade = grade;
+    bar.className = 'mastery-bar' + (score > config.threshold ? ' is-mastered' : ''); bar.dataset.grade = grade;
     bar.setAttribute('role', 'meter'); bar.setAttribute('aria-label', label);
     bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '1');
     bar.setAttribute('aria-valuenow', String(score ?? 0));
@@ -74,5 +74,31 @@
     bar.innerHTML = '<span class="mastery-bar-fill" aria-hidden="true"></span><span class="mastery-bar-threshold" aria-hidden="true"></span>';
     return bar;
   }
-  root.MastersProgress = Object.freeze({ key, bands, read, summarise, achievement, weightedScore, questionScore, append, merge, masteryBar });
+  function masteryMeter(score, grade) {
+    const cell = document.createElement('div');
+    cell.className = 'mastery-meter'; cell.dataset.grade = grade;
+    const label = document.createElement('span'); label.className = 'mastery-label'; label.textContent = bands[grade];
+    cell.append(label, masteryBar(score, bands[grade] + ' mastery', grade));
+    return cell;
+  }
+  function renderHeader(records, leafId, grades) {
+    if (document.documentElement.classList.contains('test-mode-embedded') || document.documentElement.dataset.learningMode === 'teacher') return;
+    const header = document.querySelector('main > header');
+    if (!header) return;
+    let meters = document.getElementById('activityMastery');
+    if (!meters) {
+      const back = header.querySelector('.site-back-link, a.back');
+      if (!back) return;
+      let navigation = back.closest('.site-tools');
+      if (!navigation) { navigation = document.createElement('div'); header.append(navigation); navigation.append(back); }
+      navigation.classList.add('mastery-navigation'); back.classList.add('site-back-link'); back.textContent = '\u2190 Activity map';
+      meters = document.createElement('div'); meters.id = 'activityMastery'; meters.className = 'mastery-display';
+      meters.setAttribute('aria-label','Mastery by grade'); navigation.insertBefore(meters, back);
+      header.classList.add('has-mastery');
+    }
+    const supported = settings(leafId)?.availableGrades || [1,2,3];
+    meters.replaceChildren(...(grades || supported).filter(grade => supported.includes(grade)).map(grade => masteryMeter(summarise(records, leafId, grade).score, grade)));
+    return meters;
+  }
+  root.MastersProgress = Object.freeze({ key, bands, read, summarise, achievement, weightedScore, questionScore, append, merge, masteryBar, masteryMeter, renderHeader });
 })(globalThis);

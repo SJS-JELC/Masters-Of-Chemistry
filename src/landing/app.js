@@ -116,7 +116,7 @@
         link.href=activity.href+(activity.href.includes("?")?"&":"?")+"mode="+ChemistryMode.get()+"&practice="+(option==="mastery"?"mastery":"grade&grade="+option);
         label.textContent=option==="mastery"?"MASTERY":progress.bands[option];
         if(diagramChoices)summary.textContent=data.leafId==="fourth-3-1"?(option===1?"Formula supplied · simple ion ratios":"Infer the formula · larger ion ratios"):{1:"Two atoms · single and double bonds",2:"Multiple atoms and triple bonds",3:"Larger diagrams · organic and multiple-bond challenge"}[option];
-        else if(option==="mastery")summary.textContent=activity.availableGrades ? "Build mastery across Grades 5–6 and 7–8 · Grade 9 unavailable" : "Build mastery across all three levels";
+        else if(option==="mastery")summary.textContent=activity.availableGrades ? "Build mastery across " + activity.availableGrades.map(grade => progress.bands[grade]).join(" and ") : "Build mastery across all three levels";
         else {const state=progress.summarise(records,data.leafId,option);summary.append(progress.masteryBar(state.score,progress.bands[option]+' mastery',option));}
         link.append(label,summary);choices.appendChild(link);
       });
