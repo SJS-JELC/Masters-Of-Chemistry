@@ -10,7 +10,7 @@
     let records=[];try{records=progressModel.read(localStorage);}catch(_){}
     const ids=mastery.families.map(f=>f.id);
     function read(k,fallback){try{return JSON.parse(localStorage.getItem(k))||fallback;}catch(_){return fallback;}}
-    let session=read(key,null);
+    let session=root.ActivityLaunch?.fresh?null:read(key,null);
     if(!mastery.validate(session)||session.completed||(session.practice||"mastery")!==practice||(practice==="grade"&&session.grade!==grade)||session.selected.length!==ids.length)session=mastery.create(ids,crypto.getRandomValues(new Uint32Array(1))[0],{practice,grade});
     const stack=byId("questionPanel").parentElement;
     const progress=document.createElement("section");progress.className="panel practice-progress";progress.setAttribute("aria-label","Practice progress");

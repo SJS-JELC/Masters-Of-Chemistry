@@ -58,7 +58,7 @@
     return response;
   }
   function readSaved() {
-    if (test) return;
+    if (test || globalThis.ActivityLaunch?.fresh) return;
     try {
       var raw = window.localStorage.getItem(storeKey);
       if (!raw) return;

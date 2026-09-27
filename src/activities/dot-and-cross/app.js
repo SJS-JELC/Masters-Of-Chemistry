@@ -260,7 +260,7 @@
     save();question=questions.find(q=>q.id===id);questionKey=`${scope()}:${id}`;
     if(test)remaining=(Array.isArray(restore?.remaining)?restore.remaining:pool().map(q=>q.id)).filter(next=>next!==id);
     else remaining=remaining.filter(next=>next!==id);
-    let stored=null;if(!test&&!teacher&&!drafts.has(questionKey)&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');if(candidate?.questionKey===questionKey)stored=candidate;}catch(_){} }
+    let stored=null;if(!test&&!teacher&&!globalThis.ActivityLaunch?.fresh&&!drafts.has(questionKey)&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');if(candidate?.questionKey===questionKey)stored=candidate;}catch(_){} }
     const prior=test?restore:(fresh?null:drafts.get(questionKey)||stored);state=prior?.diagram?copy(prior.diagram):prior?.state?copy(prior.state):empty();history=Array.isArray(prior?.history)?copy(prior.history):[];future=Array.isArray(prior?.future)?copy(prior.future):[];serial=Number.isInteger(prior?.serial)?prior.serial:Math.max(0,...state.atoms.map(a=>Number(String(a.id).replace(/^\D+/,'')||0)),...state.electrons.map(e=>Number(String(e.id).replace(/^\D+/,'')||0)),...state.groups.map(g=>Number(String(g.id).replace(/^\D+/,'')||0)));selected=[];assessment=prior?.assessment?copy(prior.assessment):null;feedbackResult=prior?.feedback?copy(prior.feedback):null;assessmentEmitted=false;attemptId=prior?.attemptId||crypto.randomUUID();if(prior&&Object.prototype.hasOwnProperty.call(prior,'circles'))circles=prior.circles!==false;checked=!!prior?.checked;
     // A restored test snapshot is external state.  Reject malformed diagrams
     // safely while preserving the normal editor's ability to hold an
@@ -295,5 +295,5 @@
     let queueSeed=(Array.isArray(restore.remaining)?restore.remaining:Array.isArray(test.previous?.remaining)?test.previous.remaining:[]).filter(id=>eligible.has(id));
     if(!restore.questionId&&!queueSeed.length)queueSeed=items.map(q=>q.id);
     const initial=testQuestion({...restore,remaining:queueSeed});if(initial){load(initial.id,{...restore,remaining:queueSeed});}
-  }else{remaining=items.map(q=>q.id);let savedId=null;if(!test&&!teacher&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');const prefix=`${scope()}:`;if(candidate?.questionKey?.startsWith(prefix))savedId=candidate.questionKey.slice(prefix.length);}catch(_){} }load(items.find(q=>q.id===params.get('question'))?.id||items.find(q=>q.id===savedId)?.id||items[0].id);refreshMastery();}
+  }else{remaining=items.map(q=>q.id);let savedId=null;if(!test&&!teacher&&!globalThis.ActivityLaunch?.fresh&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');const prefix=`${scope()}:`;if(candidate?.questionKey?.startsWith(prefix))savedId=candidate.questionKey.slice(prefix.length);}catch(_){} }load(items.find(q=>q.id===params.get('question'))?.id||items.find(q=>q.id===savedId)?.id||(globalThis.ActivityLaunch?.fresh?items[Math.floor(Math.random()*items.length)]:items[0]).id);refreshMastery();}
 })();

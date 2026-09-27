@@ -568,7 +568,7 @@
     } else {
       if (practice === "mastery" && globalThis.ChemistryMode?.get() !== "teacher") document.querySelector(".controls").hidden = true;
       let restored = null;
-      try { restored = JSON.parse(localStorage.getItem(sessionKey) || "null"); } catch (_) {}
+      if (!globalThis.ActivityLaunch?.fresh) try { restored = JSON.parse(localStorage.getItem(sessionKey) || "null"); } catch (_) {}
       if (globalThis.ChemistryMode?.get() !== "teacher" && restored && availableGrades.includes(Number(restored.level)) && core.questions.some((question) => question.id === restored.questionId)) {
         current = core.questions.find((question) => question.id === restored.questionId);
         if (practice === "grade" && ["2", "3"].includes(requestedGrade)) responseLevel.value = requestedGrade;
