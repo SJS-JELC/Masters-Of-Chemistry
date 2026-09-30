@@ -265,7 +265,7 @@
       elements.answerContent.innerHTML = `<div class="print-mark-scheme-heading print-only"><h2><span data-mark-scheme-title>Calorimetry calculation</span> — mark scheme</h2><p>Question ${reviewId}</p></div>${renderAnswers(result.answerParts)}<p class="assumption">Sign convention: ΔT and Q describe the water or solution. The reaction enthalpy has the opposite sign. Reported answers are shown to 3 significant figures; unrounded calculator values are used in subsequent parts.</p>`;
       elements.answerPanel.hidden = ChemistryMode.get() !== "teacher";
       elements.answerPanel.open = false;
-      QuestionReview.mount(elements.questionPanel, reviewId, loadReview);
+      QuestionReview.mount(elements.questionPanel, reviewId, ChemistryMode.get() === "teacher" ? loadReview : null);
     }
 
     elements.setup.addEventListener("change", refreshExamples);
@@ -324,5 +324,5 @@
       document.querySelector(".controls").open = true;
       generate();
     } else CalorimetryPupil.init(generate);
-    QuestionReview.requested(loadReview);
+    if (ChemistryMode.get() === "teacher") QuestionReview.requested(loadReview);
   })();

@@ -10,13 +10,17 @@
       [0, 0.5, 1].includes(item.score) && Number.isFinite(item.completedAt) &&
       item.completedAt > 0 && item.completedAt <= now;
   }
-  function clean(records, now) {
+  function cleanTiming(value) {
+    return value && value.version === 1 && Number.isSafeInteger(value.activeMs) && value.activeMs >= 0 && [60000,180000,300000,600000].includes(value.idleLimitMs)
+      ? {version:1,activeMs:value.activeMs,idleLimitMs:value.idleLimitMs} : undefined;
+  }
+  function clean(records, now = Date.now()) {
     if (!Array.isArray(records)) return [];
     const seen = new Set();
     return records.filter(item => {
       if (!valid(item, now) || seen.has(item.id)) return false;
       seen.add(item.id); return true;
-    }).sort((a, b) => a.completedAt - b.completedAt);
+    }).map(item => { const copy = {...item}; delete copy.timing; const timing = cleanTiming(item.timing); if (timing) copy.timing = timing; return copy; }).sort((a, b) => a.completedAt - b.completedAt);
   }
   function read(storage, now = Date.now()) {
     try {
@@ -100,5 +104,5 @@
     meters.replaceChildren(...(grades || supported).filter(grade => supported.includes(grade)).map(grade => masteryMeter(summarise(records, leafId, grade).score, grade)));
     return meters;
   }
-  root.MastersProgress = Object.freeze({ key, bands, read, summarise, achievement, weightedScore, questionScore, append, merge, masteryBar, masteryMeter, renderHeader });
+  root.MastersProgress = Object.freeze({ key, bands, clean, cleanTiming, read, summarise, achievement, weightedScore, questionScore, append, merge, masteryBar, masteryMeter, renderHeader });
 })(globalThis);

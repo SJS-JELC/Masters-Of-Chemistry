@@ -201,7 +201,7 @@
       elements.answerContent.innerHTML = `<div class="print-mark-scheme-heading print-only"><h2><span data-mark-scheme-title>Average bond-enthalpy calculation</span> — mark scheme</h2><p>Question ${reviewId}</p></div>${renderAnswers(result)}`;
       elements.answerPanel.hidden = false;
       elements.answerPanel.open = false;
-      QuestionReview.mount(elements.questionPanel, reviewId, loadReview);
+      QuestionReview.mount(elements.questionPanel, reviewId, ChemistryMode.get() === "teacher" ? loadReview : null);
     }
 
     elements.difficulty.addEventListener("change", refreshReactionOptions);
@@ -253,5 +253,5 @@
     refreshReactionOptions();
     if(ChemistryMode.get()==="teacher")generate();
     else NumericPractice.mount({mastery:BondEnthalpyMastery,renderQuestion:generate,slug:"bond-enthalpy",leafId:"lower-10-4",title:"Average bond enthalpy practice"});
-    QuestionReview.requested(loadReview);
+    if (ChemistryMode.get() === "teacher") QuestionReview.requested(loadReview);
   })();

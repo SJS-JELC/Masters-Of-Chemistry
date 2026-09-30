@@ -87,3 +87,6 @@ html[data-learning-mode="teacher"] .test-tile-row,html[data-learning-mode="teach
 #testCurrentBars.mastery-display>.mastery-meter>.mastery-label{display:block;color:inherit}
 #testCurrentBars.mastery-display .mastery-bar{overflow:visible}
 @media(max-width:700px){.test-navigation #testCurrentBars.mastery-display{gap:16px;margin-right:4px}.test-navigation #testCurrentBars .mastery-meter{width:90px;min-width:70px;flex-basis:90px}}
+
+.stats-tile{text-decoration:none}
+.test-selecting .stats-tile,.test-revising .stats-tile{display:none!important}

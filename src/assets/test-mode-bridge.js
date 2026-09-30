@@ -13,8 +13,9 @@
   }
   const sessionId = params.get('testSession'), attemptId = params.get('testAttempt');
   const enabled = Boolean(sessionId && attemptId && root.parent !== root);
-  let connection;
+  let connection, latestState;
   function send(type, payload) {
+    if (type === 'state') latestState = payload;
     if (enabled) root.parent.postMessage({channel:'masters-test-mode', type, sessionId, attemptId, payload}, location.origin === 'null' ? '*' : location.origin);
   }
   if (enabled) {
@@ -44,10 +45,10 @@
         }
         const reportTitle = () => {
           const title = document.querySelector('#questionTitle, [data-question-title], #questionPanel .question-header h3');
-          const text = document.documentElement.dataset.revisionTitle === 'none' ? '' : title?.textContent?.trim() || 'Question';
+          const text = document.documentElement.dataset?.revisionTitle === 'none' ? '' : title?.textContent?.trim() || 'Question';
           const questionId = document.querySelector('.review-id, .question-review-id, #printedReviewId')?.textContent?.match(/\b[A-Z]{2,3}-[A-Z0-9]{6}\b/)?.[0] || '';
           const signature = text + '\\n' + questionId;
-          if (signature !== reportTitle.previous) { reportTitle.previous = signature; send('title',{title:text,questionId,inlineQuestionId:document.documentElement.dataset.revisionCode === 'inline'}); }
+          if (signature !== reportTitle.previous) { reportTitle.previous = signature; send('title',{title:text,questionId,inlineQuestionId:document.documentElement.dataset?.revisionCode === 'inline'}); }
           if (title) title.classList.add('test-transferred-title');
         };
         if (root.MutationObserver) new MutationObserver(reportTitle).observe(document.body,{childList:true,subtree:true,characterData:true});
@@ -60,5 +61,5 @@
     });
     return connection;
   }
-  root.TestModeBridge = Object.freeze({connect, save: state => send('state', state), result: result => send('result', result), next: () => send('next')});
+  root.TestModeBridge = Object.freeze({connect, checkpoint: () => latestState, save: state => send('state', state), result: result => send('result', result), next: () => send('next')});
 })(globalThis);

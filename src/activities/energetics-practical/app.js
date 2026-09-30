@@ -41,7 +41,7 @@
   function blankResponse(question, previous) {
     var fields = {};
     (question.fields || []).forEach(function (field) { fields[String(field.id)] = field.multiselect ? [] : ''; });
-    return { fields: fields, selectedId: '', errorId: '', overrides: [], hinted: Boolean(previous && previous.hinted), recorded: Boolean(previous && previous.recorded), firstScore: previous && previous.firstScore != null ? previous.firstScore : null, attemptId: previous && previous.attemptId || (test ? test.attemptId : crypto.randomUUID()), firstResult: previous && previous.firstResult || null };
+    return { fields: fields, selectedId: '', errorId: '', overrides: [], hinted: Boolean(previous && previous.hinted), recorded: Boolean(previous && previous.recorded), firstScore: previous && previous.firstScore != null ? previous.firstScore : null, attemptId: previous && previous.attemptId || (test ? test.attemptId : crypto.randomUUID()), firstResult: previous && previous.firstResult || null, timing: previous && previous.timing };
   }
   function responseFor(question) {
     var id = String(question.id);
@@ -282,21 +282,23 @@
     if (progressModel && progressModel.questionScore) return progressModel.questionScore(result.points.map(function (point) { return point.correct; }));
     return result.total ? result.correctCount / result.total : 0;
   }
+  var T = globalThis.IGCSEQuestionTime;
   function firstResult(question, response, result) {
     if (!response.firstResult) {
+      T.finish(response);
       var score = questionScore(result), independent = !response.hinted;
-      response.firstResult = { score: score, independent: independent, completedAt: Date.now(),
+      response.firstResult = { score: score, independent: independent, completedAt: Date.now(), timing: T.result(response),
         evidence: independent ? {score: score, questionId: question.id, marks: result.points.map(function (p) {return p.correct;}), total: result.total} : null };
       response.firstScore = score;
     }
     return response.firstResult;
   }
   function recordMastery(question, response, result) {
-    if (test || teacher || !progressModel || !settings) return;
+    if (test || teacher || !T.enabled || !progressModel || !settings) return;
     var outcome = firstResult(question, response, result);
     if (!outcome.independent) return;
     var item = { id: response.attemptId, leafId: settings.leafId, grade: question.band === '9' ? 3 : 2,
-      score: outcome.score, completedAt: outcome.completedAt, question: question.id };
+      score: outcome.score, completedAt: outcome.completedAt, question: question.id, timing: outcome.timing };
     masteryRecords = progressModel.merge(progressModel.read(localStorage), masteryRecords);
     masteryRecords = progressModel.append(masteryRecords, item); response.recorded = true;
     try { localStorage.setItem(progressModel.key, JSON.stringify(masteryRecords)); } catch (_) {}
@@ -347,6 +349,7 @@
     return grade === 2 ? '7-8' : '9';
   }
   function nextPractice() {
+    T.stop();
     var previousId = state.currentId;
     state.level = practiceBand();
     var pool = visibleQuestions(), index = pool.findIndex(function (q) {return q.id === previousId;});
@@ -356,7 +359,7 @@
     save(); render();
   }
   function move(delta) { var list = visibleQuestions(); var index = list.findIndex(function (q) { return String(q.id) === String(state.currentId); }); var next = list[index + delta]; if (next) { state.currentId = next.id; save(); render(); } }
-  function render() { updateCounts(); renderList(); renderCard(currentQuestion()); document.querySelectorAll('.level-tab').forEach(function (tab) { tab.classList.toggle('is-active', tab.dataset.level === state.level); }); els.reviewToggle.setAttribute('aria-pressed', state.review ? 'true' : 'false'); els.reviewToggle.textContent = state.review ? 'Hide model answers' : 'Review model answers'; }
+  function render() { if(currentQuestion()) { var r=responseFor(currentQuestion()); T.start(r,r.attemptId,!!r.firstResult || !!state.checked[String(currentQuestion().id)],save,!teacher); } updateCounts(); renderList(); renderCard(currentQuestion()); document.querySelectorAll('.level-tab').forEach(function (tab) { tab.classList.toggle('is-active', tab.dataset.level === state.level); }); els.reviewToggle.setAttribute('aria-pressed', state.review ? 'true' : 'false'); els.reviewToggle.textContent = state.review ? 'Hide model answers' : 'Review model answers'; }
   function init() {
     els = { list: $('questionList'), card: $('questionCard'), empty: $('emptyState'), reviewToggle: $('reviewToggle') };
     if (test) {

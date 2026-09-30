@@ -55,6 +55,7 @@
     "activities/structure-and-bonding/index.html",
     "activities/structure-and-bonding/styles.css",
     "assets/SJS-Eagle.svg",
+    "assets/active-question-time.js",
     "assets/activity-modes.js",
     "assets/fonts/Comfortaa-Bold.ttf",
     "assets/fonts/OFL-Comfortaa.txt",
@@ -62,14 +63,19 @@
     "assets/fonts/PlaywriteEnglandJoined.ttf",
     "assets/generated-review.js",
     "assets/igcse-mastery-config.js",
+    "assets/igcse-question-time.js",
+    "assets/igcse-stats-core.js",
+    "assets/igcse-stats-progress.js",
+    "assets/igcse-stats.css",
+    "assets/igcse-stats.js",
     "assets/learning-mode.js",
     "assets/numeric-mastery.js",
     "assets/numeric-practice.css",
     "assets/numeric-practice.js",
     "assets/print-button.js",
+    "assets/question-header.js",
     "assets/question-review.css",
     "assets/question-review.js",
-    "assets/question-header.js",
     "assets/recall/igcse-data.js",
     "assets/recall/marking.js",
     "assets/recall/progress.js",
@@ -83,6 +89,7 @@
     "landing/app.js",
     "landing/catalog.js",
     "landing/progress.js",
-    "landing/styles.css"
+    "landing/styles.css",
+    "stats.html"
   ]
 }

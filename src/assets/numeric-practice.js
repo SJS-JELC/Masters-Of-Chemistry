@@ -2,6 +2,7 @@
   "use strict";
   const byId=id=>document.getElementById(id);
   let active;
+  const T = root.IGCSEQuestionTime;
   function mountStandalone({mastery,renderQuestion,slug,leafId,title}){
     const params=new URLSearchParams(location.search),grade=[1,2,3].includes(Number(params.get("grade")))?Number(params.get("grade")):1;
     const practice=params.get("practice")==="grade"||(!params.has("practice")&&params.has("grade"))?"grade":"mastery";
@@ -23,9 +24,9 @@
     function save(){try{localStorage.setItem(key,JSON.stringify(session));}catch(_){warn();}}
     function refreshRecords(){try{records=progressModel.merge(progressModel.read(localStorage),records);}catch(_){}}
     function record(){
-      const c=session.current,points=c.correct.slice();
+      const c=session.current,points=c.correct.slice();if(c.assisted||!T.enabled)return;
       if(c.selfCheck==="pass"||c.selfCheck==="fail")points.push(c.selfCheck==="pass");
-      const result={id:session.id+"-"+session.submitted,leafId,grade:c.grade,score:progressModel.questionScore(points),completedAt:Date.now(),family:c.family,assisted:c.assisted};
+      const result={id:session.id+"-"+session.submitted,leafId,grade:c.grade,score:progressModel.questionScore(points),completedAt:Date.now(),family:c.family,assisted:c.assisted,timing:T.result(c)};
       refreshRecords();records=progressModel.append(records,result);
       try{localStorage.setItem(recordsKey,JSON.stringify(records));}catch(_){warn();}
     }
@@ -49,6 +50,7 @@
       gauge();save();
       if(session.completed){byId("questionPanel").innerHTML='<h2>Mastery complete</h2><p>You have achieved mastery at all three grade bands.</p><a class="site-back-link" href="../../index.html?mode=pupil">Return to the activity map</a>';byId("answerPanel").hidden=true;return;}
       const question=mastery.generate(session);renderQuestion(question);
+      T.start(session.current,session.id+"-"+(session.submitted+(session.current.submitted?0:1)),session.current.submitted,save);
       const panel=byId("questionPanel");
       panel.insertAdjacentHTML("beforeend",'<div class="pupil-answer-actions"><button id="checkPupilAnswer" type="button">Check answers</button><button id="nextPupilQuestion" type="button" hidden>Next question</button></div><p id="pupilFeedback" role="status"></p><section id="drawingCheck" hidden></section>');
       question.responses.forEach((_,i)=>{byId("response-"+i).value=session.current.responses[i]||"";});
@@ -57,12 +59,13 @@
       byId("checkPupilAnswer").addEventListener("click",()=>{
         const outcome=mastery.submit(session,question.responses.map((_,i)=>byId("response-"+i).value));
         if(!outcome.accepted){byId("pupilFeedback").textContent=outcome.message;return;}
+        if(outcome.first)T.finish(session.current);
         markInputs(outcome.correct);byId("nextPupilQuestion").hidden=outcome.awaitingSelfCheck;byId("checkPupilAnswer").textContent="Check again";
         byId("pupilFeedback").textContent=outcome.first||outcome.awaitingSelfCheck?message():outcome.correct.every(Boolean)?"All answers are now correct. Your recorded first attempt is unchanged.":"Keep checking your values. Your recorded first attempt is unchanged.";
         byId("answerPanel").hidden=false;if(outcome.first&&!outcome.correct.every(Boolean))byId("answerPanel").open=true;
         if(outcome.first&&!outcome.awaitingSelfCheck)record();selfCheck(question);gauge();save();
       });
-      byId("nextPupilQuestion").addEventListener("click",()=>{refreshRecords();mastery.next(session,progressModel.achievement(records,leafId).achievedGrade);showQuestion();byId("questionPanel").scrollIntoView({block:"start"});});
+      byId("nextPupilQuestion").addEventListener("click",()=>{T.stop();refreshRecords();mastery.next(session,progressModel.achievement(records,leafId).achievedGrade);showQuestion();byId("questionPanel").scrollIntoView({block:"start"});});
       if(session.current.submitted){markInputs(question.responses.map((r,i)=>mastery.mark(session.current.responses[i]||"",r.expected)));byId("nextPupilQuestion").hidden=session.current.selfCheck==="pending";byId("checkPupilAnswer").textContent="Check again";byId("pupilFeedback").textContent=message();byId("answerPanel").hidden=false;selfCheck(question);}
       else byId("answerPanel").hidden=true;
       save();
@@ -140,9 +143,10 @@
       if (existing && [0, 0.5, 1].includes(existing.score)) return existing;
       const payload = {
         score,
+        timing: T.result(c),
         independent: !c.assisted,
         completedAt: Date.now(),
-        evidence: { score, family: c.family, grade: c.grade, questionId: question?.reviewId ?? null,
+        evidence: c.assisted ? null : { score, family: c.family, grade: c.grade, questionId: question?.reviewId ?? null,
           correct: c.correct.slice(), selfCheck: c.selfCheck ?? null, assisted: !!c.assisted }
       };
       c.testResult = payload;
@@ -216,6 +220,7 @@
       const panel = byId("questionPanel");
       panel.insertAdjacentHTML("beforeend", '<div class="pupil-answer-actions"><button id="checkPupilAnswer" type="button">Check answers</button><button id="nextPupilQuestion" type="button" hidden>Next question</button></div><p id="pupilFeedback" role="status"></p><section id="drawingCheck" hidden></section>');
       const c = session.current;
+      T.start(c,test.attemptId,c.submitted,save);
       question.responses.forEach((_, index) => { const input = byId("response-" + index); if (input) input.value = c.responses[index] || ""; });
       c.scaffoldParts.slice().forEach(index => panel.querySelector('[data-scaffold-toggle="' + index + '"]')?.click());
       restoreScaffoldValues(panel);
@@ -237,6 +242,7 @@
       check.addEventListener("click", async () => {
         const outcome = mastery.submit(session, question.responses.map((_, index) => byId("response-" + index)?.value || ""));
         if (!outcome.accepted) { setFeedback(outcome.message); await save(); return; }
+        if (outcome.first) T.finish(c);
         markInputs(outcome.correct);
         check.textContent = "Check again";
         byId("answerPanel").hidden = false;

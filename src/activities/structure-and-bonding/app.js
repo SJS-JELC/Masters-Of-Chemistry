@@ -25,6 +25,7 @@
     if (pupil) { document.querySelector(".controls").hidden = true; focus.value = "any"; focus.disabled = true; responseLevel.disabled = true; generateButton.disabled = true; }
 
 
+    const T = globalThis.IGCSEQuestionTime; let timed = {};
     let current = null;
     let lockedText = "";
     let judgements = [];
@@ -48,16 +49,16 @@
     function saveStandalone() {
       if (test || teacherMode || globalThis.ChemistryMode?.get() === "teacher" || !current) return;
       const payload = { questionId: current.id, level: Number(responseLevel.value), focus: focus.value, attemptId,
-        recorded, lockedText, judgements, activePoint, awaitingEvidence, finished, completedAt,
+        recorded, timing:timed.timing, lockedText, judgements, activePoint, awaitingEvidence, finished, completedAt,
         responses: [...panel.querySelectorAll(".student-response")].map((field) => field.value),
         tableValues: [...panel.querySelectorAll(".table-choice")].map((choice) => choice.value) };
       try { localStorage.setItem(sessionKey, JSON.stringify(payload)); } catch (_) { controlNote.textContent += " This browser cannot save the current question."; }
     }
     function recordMastery(correct) {
-      if (test || recorded || teacherMode || globalThis.ChemistryMode?.get() === "teacher") return;
+      if (test || !T.enabled || recorded || teacherMode || globalThis.ChemistryMode?.get() === "teacher") return;
       const result = { id: attemptId, leafId: "lower-6-5", grade: Number(responseLevel.value),
         score: progressModel.questionScore(correct), completedAt: Date.now(),
-        question: current.id, selfAssessed: Number(responseLevel.value) > 1 };
+        timing:T.result(timed), question: current.id, selfAssessed: Number(responseLevel.value) > 1 };
       try { masteryRecords = progressModel.append(progressModel.merge(progressModel.read(localStorage), masteryRecords), result); recorded = true; localStorage.setItem(progressModel.key, JSON.stringify(masteryRecords)); refreshMastery(); saveStandalone(); }
       catch (_) { controlNote.textContent += " This browser cannot save mastery progress."; }
     }
@@ -93,7 +94,7 @@
         version: 1, questionId: current.id, level: Number(responseLevel.value),
         responses: [...panel.querySelectorAll(".student-response")].map((field) => field.value),
         tableValues: [...panel.querySelectorAll(".table-choice")].map((choice) => choice.value),
-        lockedText, judgements, activePoint, awaitingEvidence, finished, testCompleted, completedAt
+        timing:timed.timing, lockedText, judgements, activePoint, awaitingEvidence, finished, testCompleted, completedAt
       };
     }
 
@@ -111,7 +112,7 @@
         correct = judgements.map((item) => item.status === "met");
         evidence = { score: progressModel.questionScore(correct), questionId: current.id, level, selfAssessed: true, answer: lockedText, judgements };
       }
-      await B.result({ score: progressModel.questionScore(correct), independent: true, completedAt, evidence });
+      await B.result({ score: progressModel.questionScore(correct), independent: true, completedAt, timing:T.result(timed), evidence });
     }
 
 
@@ -194,6 +195,7 @@
     }
 
     function renderQuestion() {
+      T.start(timed,attemptId,recorded || !!lockedText || finished,()=>{saveTest();saveStandalone();},pupil && !teacherMode);
       markingPane.replaceChildren();
       const marks = current.points.length;
       const level = Number(responseLevel.value);
@@ -396,6 +398,7 @@
         responseFields[0]?.focus();
         return;
       }
+      T.finish(timed);
       lockedText = value;
       judgements = current.points.map(() => ({ status: null, evidence: null }));
       activePoint = 0;
@@ -442,7 +445,8 @@
     }
 
     function clearResponseState() {
-      attemptId = crypto.randomUUID(); recorded = false;
+      T.stop();
+      attemptId = crypto.randomUUID(); recorded = false; timed = {};
       lockedText = "";
       judgements = [];
       activePoint = null;
@@ -544,6 +548,7 @@
       focus.disabled = true; responseLevel.disabled = true; generateButton.disabled = true; teacherModeButton.disabled = true;
       current = chooseTestQuestion();
       const restored = Number(test.state?.level) === Number(requestedGrade) ? test.state : {};
+      timed = {timing:restored.timing};
       lockedText = restored.lockedText || "";
       judgements = Array.isArray(restored.judgements) ? restored.judgements : [];
       activePoint = Number.isInteger(restored.activePoint) ? restored.activePoint : restored.activePoint === null ? null : 0;
@@ -574,6 +579,7 @@
         if (practice === "grade" && ["2", "3"].includes(requestedGrade)) responseLevel.value = requestedGrade;
         else responseLevel.value = String(restored.level || practiceBand());
         focus.value = pupil ? "any" : restored.focus || "any";
+        timed = {timing:restored.timing};
         attemptId = restored.attemptId || crypto.randomUUID(); recorded = !!restored.recorded;
         lockedText = restored.lockedText || ""; judgements = Array.isArray(restored.judgements) ? restored.judgements : [];
         activePoint = Number.isInteger(restored.activePoint) ? restored.activePoint : restored.activePoint === null ? null : 0;

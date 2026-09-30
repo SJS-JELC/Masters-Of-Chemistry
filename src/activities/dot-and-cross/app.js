@@ -49,18 +49,23 @@
     const heading=document.createElement('h3');heading.className=`feedback-title ${result.correct?'pass':'fail'}`;heading.textContent=result.correct?'Correct diagram':'Keep building';
     const list=document.createElement('ul');list.className='feedback-list';result.criteria.filter(c=>!(c.id==='state-valid'&&c.passed)).forEach(c=>{const li=document.createElement('li');li.className=c.passed?'pass':'fail';li.textContent=`${c.passed?'✓':'○'} ${c.message||c.label}`;list.appendChild(li);});$('feedback').replaceChildren(heading,list);
   }
-  function syncTestControls(){if($('next'))$('next').disabled=!!test&&!assessment;}
-  function snapshotForBridge(){return question?{version:2,questionId:question.id,category:question.category,grade,diagram:snapshot(),serial,history:copy(history),future:copy(future),circles,checked,assessment:copy(assessment),feedback:copy(feedbackResult),remaining:copy(remaining)}:null;}
+  function syncTestControls(){if($('next'))$('next').disabled=!!test&&!assessment;
+    const correct=feedbackResult?.correct===true;
+    $('check').classList.toggle('primary',!correct);
+    $('next').classList.toggle('primary',correct);
+  }
+  const T=globalThis.IGCSEQuestionTime; let timed={};
+  function snapshotForBridge(){return question?{version:2,questionId:question.id,category:question.category,grade,diagram:snapshot(),serial,history:copy(history),future:copy(future),circles,checked,assessment:copy(assessment),feedback:copy(feedbackResult),remaining:copy(remaining),timing:timed.timing,attemptId}:null;}
   function saveTest(){if(test&&question)return B.save(snapshotForBridge());}
   function refreshMastery(){if(test||teacher||!progressModel)return;try{masteryRecords=progressModel.merge(progressModel.read(localStorage),masteryRecords);}catch(_){};progressModel.renderHeader?.(masteryRecords,category==='ionic'?'fourth-3-1':'fourth-3-2',allowedGrades.filter(Boolean));}
   function recordMastery(){
-    if(test||teacher||!assessment||assessment.recorded||!progressModel)return;
+    if(test||teacher||!T.enabled||!assessment||assessment.recorded||!progressModel)return;
     const leafId=category==='ionic'?'fourth-3-1':'fourth-3-2';
-    const result={id:attemptId,leafId,grade,score:assessment.score,completedAt:assessment.completedAt,question:question.id,assisted:false};
+    const result={id:attemptId,leafId,grade,score:assessment.score,timing:T.result(timed),completedAt:assessment.completedAt,question:question.id,assisted:false};
     try{masteryRecords=progressModel.append(progressModel.merge(progressModel.read(localStorage),masteryRecords),result);localStorage.setItem(progressModel.key,JSON.stringify(masteryRecords));assessment.recorded=true;refreshMastery();}
     catch(_){assessment.recorded=true;}
   }
-  async function emitAssessment(){if(!test||!assessment||assessmentEmitted)return;assessmentEmitted=true;await B.result({score:assessment.score,independent:true,completedAt:assessment.completedAt,evidence:{questionId:question.id,category:question.category,grade,score:assessment.score,criteria:copy(assessment.criteria),completedAt:assessment.completedAt}});}
+  async function emitAssessment(){if(!test||!assessment||assessmentEmitted)return;assessmentEmitted=true;await B.result({score:assessment.score,timing:T.result(timed),independent:true,completedAt:assessment.completedAt,evidence:{questionId:question.id,category:question.category,grade,score:assessment.score,timing:T.result(timed),criteria:copy(assessment.criteria),completedAt:assessment.completedAt}});}
   function organise(){const regions=new Map();for(const e of state.electrons){const a=e.anchor,k=a.kind==='atom'?`a:${a.atomId}`:`b:${[a.a,a.b].sort().join(':')}`;if(!regions.has(k))regions.set(k,[]);regions.get(k).push(e);}for(const es of regions.values()){
       es.sort((a,b)=>a.anchor.slot-b.anchor.slot);
       let ordered=es;
@@ -191,6 +196,17 @@
   });
   function undo(){if(!history.length)return;future.push(snapshot());state=history.pop();selected=[];clearFeedback();render();saveTest();say('Last edit undone.');}
   function redo(){if(!future.length)return;history.push(snapshot());state=future.pop();selected=[];clearFeedback();render();saveTest();say('Edit restored.');}
+  // Enter follows the highlighted action; Space still operates the diagram tools.
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Enter'||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey||event.isComposing)return;
+    if(document.querySelector('dialog[open]')||event.target.closest('input,textarea,select,a,summary,[contenteditable]:not([contenteditable="false"])'))return;
+    const button=event.target.closest('button');
+    if(button&&!['check','next'].includes(button.id))return;
+    event.preventDefault();event.stopPropagation();
+    if(event.repeat||drag)return;
+    const action=$(feedbackResult?.correct===true?'next':'check');
+    if(!action.disabled)action.click();
+  },true);
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){cancelDrag();selected=[];render();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'&&!['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)){event.preventDefault();event.shiftKey?redo():undo();}});
   document.querySelectorAll('[data-tool]').forEach(button=>{button.addEventListener('click',()=>{if(button.dataset.dragged==='true'){button.dataset.dragged='false';return;}setTool(button.dataset.tool);});if(['dot','cross'].includes(button.dataset.tool))button.addEventListener('pointerdown',event=>{button.dataset.dragged='false';setTool(button.dataset.tool);startDrag(event,{kind:'paletteSymbol',symbol:button.dataset.tool},button);});});
   document.querySelectorAll('[data-element]').forEach(button=>{button.addEventListener('pointerdown',event=>{button.dataset.dragged='false';selectedElement=button.dataset.element;setTool('atom');startDrag(event,{kind:'palette',element:selectedElement},button);});button.addEventListener('click',()=>{if(button.dataset.dragged==='true'){button.dataset.dragged='false';return;}selectedElement=button.dataset.element;setTool('atom');});});
@@ -243,7 +259,7 @@
   function displayFormula(formula){return formula.replace(/\d/g,digit=>'₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);}
   function pool(){const seen=new Set();return questions.filter(q=>{const key=!teacher&&q.category==='covalent'?`covalent:${q.formula}`:q.id;if((category!=='all'&&q.category!==category)||(grade!==0&&!q.grades?.includes(grade))||seen.has(key))return false;seen.add(key);return true;});}
   const stateKey=standaloneLeaf?`dot-and-cross-${standaloneLeaf}-${practice}-v1`:null;
-  function save(){if(!questionKey)return;const saved={state:snapshot(),history:copy(history),future:copy(future),checked,assessment:copy(assessment),feedback:copy(feedbackResult),serial,circles,attemptId};drafts.set(questionKey,saved);if(!test&&!teacher&&stateKey){try{localStorage.setItem(stateKey,JSON.stringify({questionKey,...saved}));}catch(_){}}}
+  function save(){if(!questionKey)return;const saved={state:snapshot(),history:copy(history),future:copy(future),checked,assessment:copy(assessment),feedback:copy(feedbackResult),serial,circles,attemptId,timing:timed.timing};drafts.set(questionKey,saved);if(!test&&!teacher&&stateKey){try{localStorage.setItem(stateKey,JSON.stringify({questionKey,...saved}));}catch(_){}}}
   function testQuestion(restore){
     const candidates=pool();
     const byId=id=>candidates.find(q=>q.id===id);
@@ -257,16 +273,17 @@
     return queue[hash%queue.length]||candidates[0];
   }
   function load(id,restore=null,fresh=false){
-    save();question=questions.find(q=>q.id===id);questionKey=`${scope()}:${id}`;
+    T.stop();save();question=questions.find(q=>q.id===id);questionKey=`${scope()}:${id}`;
     if(test)remaining=(Array.isArray(restore?.remaining)?restore.remaining:pool().map(q=>q.id)).filter(next=>next!==id);
     else remaining=remaining.filter(next=>next!==id);
     let stored=null;if(!test&&!teacher&&!globalThis.ActivityLaunch?.fresh&&!drafts.has(questionKey)&&stateKey){try{const candidate=JSON.parse(localStorage.getItem(stateKey)||'null');if(candidate?.questionKey===questionKey)stored=candidate;}catch(_){} }
-    const prior=test?restore:(fresh?null:drafts.get(questionKey)||stored);state=prior?.diagram?copy(prior.diagram):prior?.state?copy(prior.state):empty();history=Array.isArray(prior?.history)?copy(prior.history):[];future=Array.isArray(prior?.future)?copy(prior.future):[];serial=Number.isInteger(prior?.serial)?prior.serial:Math.max(0,...state.atoms.map(a=>Number(String(a.id).replace(/^\D+/,'')||0)),...state.electrons.map(e=>Number(String(e.id).replace(/^\D+/,'')||0)),...state.groups.map(g=>Number(String(g.id).replace(/^\D+/,'')||0)));selected=[];assessment=prior?.assessment?copy(prior.assessment):null;feedbackResult=prior?.feedback?copy(prior.feedback):null;assessmentEmitted=false;attemptId=prior?.attemptId||crypto.randomUUID();if(prior&&Object.prototype.hasOwnProperty.call(prior,'circles'))circles=prior.circles!==false;checked=!!prior?.checked;
+    const prior=test?restore:(fresh?null:drafts.get(questionKey)||stored);state=prior?.diagram?copy(prior.diagram):prior?.state?copy(prior.state):empty();history=Array.isArray(prior?.history)?copy(prior.history):[];future=Array.isArray(prior?.future)?copy(prior.future):[];serial=Number.isInteger(prior?.serial)?prior.serial:Math.max(0,...state.atoms.map(a=>Number(String(a.id).replace(/^\D+/,'')||0)),...state.electrons.map(e=>Number(String(e.id).replace(/^\D+/,'')||0)),...state.groups.map(g=>Number(String(g.id).replace(/^\D+/,'')||0)));selected=[];assessment=prior?.assessment?copy(prior.assessment):null;feedbackResult=prior?.feedback?copy(prior.feedback):null;assessmentEmitted=false;attemptId=test?.attemptId||prior?.attemptId||crypto.randomUUID();timed={timing:prior?.timing};if(prior&&Object.prototype.hasOwnProperty.call(prior,'circles'))circles=prior.circles!==false;checked=!!prior?.checked;
     // A restored test snapshot is external state.  Reject malformed diagrams
     // safely while preserving the normal editor's ability to hold an
     // intentionally incomplete student drawing during the current attempt.
     if(C.validateState(state).length){state=empty();history=[];future=[];serial=0;assessment=null;feedbackResult=null;checked=false;}
     $('prompt').textContent='Draw a dot & cross diagram for '+(question.category==='covalent'?displayFormula(question.formula):question.name.toLowerCase()+(hideFormula(question)?'':`, ${displayFormula(question.formula)}`));$('questionId').textContent=reviewBank.id(question);$('questionId').dataset.question=id;if(teacher)$('teacherQuestion').value=id;cursor={x:400,y:325};showCursor=false;setTool('atom');
+    T.start(timed,attemptId,!!assessment,()=>{save();saveTest();},!teacher);
     $('showAnswer').disabled=!teacher&&!checked;$('showAnswer').textContent='Show answer';if(feedbackResult)feedbackFor(feedbackResult);else $('feedback').replaceChildren();syncTestControls();save();saveTest();if(test&&assessment)emitAssessment();
   }
   $('next').addEventListener('click',()=>{if(test){if(!assessment){say('Check this diagram before continuing.');return;}B.next();return;}if(practice==='mastery'&&standaloneLeaf){refreshMastery();const nextGrade=selectMasteryGrade();if(nextGrade!==grade){grade=nextGrade;remaining=[];} }if(!remaining.length)remaining=pool().map(q=>q.id).filter(id=>id!==question.id);load(remaining.length?remaining[Math.floor(Math.random()*remaining.length)]:question.id,null,true);});
@@ -275,7 +292,7 @@
     // The scheduler receives only the first assessment.  Later edits, undo,
     // rechecks and answer reveals may update local feedback but never improve
     // the result already recorded for this attempt.
-    const firstAssessment=!assessment;if(firstAssessment){const score=scoreFor(result),completedAt=Date.now();assessment={score,correct:result.correct,criteria:copy(result.criteria),completedAt,independent:true,recorded:false};recordMastery();}
+    const firstAssessment=!assessment;if(firstAssessment){T.finish(timed);const score=scoreFor(result),completedAt=Date.now();assessment={score,correct:result.correct,criteria:copy(result.criteria),completedAt,independent:true,recorded:false};recordMastery();}
     render();syncTestControls();saveTest();save();
     if(test&&firstAssessment)await emitAssessment();
   });

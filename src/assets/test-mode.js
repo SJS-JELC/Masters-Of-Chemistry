@@ -138,7 +138,19 @@
       }
     }
   }
-  function stopFrame() { clearTimeout(timer); if (frame) frame.remove(); frame = null; }
+  function stopFrame() {
+    clearTimeout(timer);
+    if (frame) {
+      // Read the final child checkpoint synchronously before detaching its document.
+      try {
+        const child = frame.contentWindow; child.ActiveQuestionTime?.pause();
+        const snapshot = child.TestModeBridge?.checkpoint?.();
+        if (snapshot && session?.current && new URL(frame.src).searchParams.get("testAttempt") === session.current.attemptId) { session.current.state = snapshot; save(); }
+      } catch (_) {}
+      frame.remove();
+    }
+    frame = null;
+  }
   function syncLearningMode() {
     const teacher = teacherView();
     tile.parentElement.hidden = teacher; host.hidden = teacher;
@@ -264,6 +276,7 @@
       if (c.result || !C.validResult(d.payload,Date.now())) return;
       if (d.payload.evidence !== null) {
         const item = {...d.payload.evidence,id:c.attemptId,leafId:c.leafId,[alevel?'level':'grade']:c.level,completedAt:d.payload.completedAt};
+        const timing = M.cleanTiming(d.payload.timing); if (timing) item.timing = timing;
         session.evidence.push(item); save(); persistEvidence(item);
       }
       refresh(); C.accept(session,d.payload,summary,Date.now()); save(); renderProgress();
